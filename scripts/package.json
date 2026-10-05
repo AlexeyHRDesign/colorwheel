@@ -1,0 +1,8 @@
+{
+  "name": "colorwheel-dev",
+  "private": true,
+  "type": "module",
+  "description": "Dev tooling only. The mod has no runtime dependencies beyond the bundled vendor file.",
+  "scripts": { "build:vendor": "node build-vendor.mjs" },
+  "devDependencies": { "beautiful-mermaid": "1.1.3", "esbuild": "^0.28.2" }
+}

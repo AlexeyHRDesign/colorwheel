@@ -1,0 +1,13 @@
+{
+  "name": "colorwheel",
+  "version": "0.1.0",
+  "description": "ColorWheel: replies in Claude Code Desktop drawn with the app's own HTML markdown, alert cards, and themed full-width mermaid diagrams and charts that follow light and dark mode.",
+  "author": { "name": "Aleksei Druzhkov", "url": "https://github.com/AlexeyHRDesign" },
+  "license": "MIT",
+  "keywords": ["mod", "markdown", "mermaid", "diagrams", "charts", "desktop"],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "enabled": { "type": "boolean", "title": "Enabled", "description": "Draw replies with ColorWheel. Off falls back to Claude Code's own renderer.", "default": true },
+    "diagramHints": { "type": "boolean", "title": "Diagram hints", "description": "Tell Claude, with a short model-only note on each prompt, that mermaid diagrams and charts render here.", "default": true }
+  }
+}
