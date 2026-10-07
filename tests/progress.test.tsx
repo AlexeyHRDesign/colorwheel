@@ -1,5 +1,5 @@
 import type { On } from 'claude-code'
-import { expect, test } from 'claude-code/testing'
+import { expect, mock, test } from 'claude-code/testing'
 
 import { EMPTY, agentQueued, agentStarted, agentStopped, summarize, taskCompleted, taskCreated, todosWritten } from '../hooks/progress'
 
@@ -65,4 +65,23 @@ test('a running subagent and a todo list draw a progress row above the band belo
     expect((await ui.find({ type: 'Text', text: /^weather$/ }))?.text).toBe('weather')
     await ui.unmount()
   }
+})
+
+test('/colorwheel progress plays a demo that ends in All done and then hides', async ($, on) => {
+  const clock = mock.clock(on)
+  stand(on)
+  const reply = await $.command.run({ command: 'colorwheel', args: 'progress' } as never)
+  expect(JSON.stringify(reply)).toContain('Progress demo')
+  const look = async () => {
+    const ui = await $.ui.mount(band('desktop') as never)
+    const text = (await ui.findAll({ type: 'Text' })).map(t => t.text).join('|')
+    await ui.unmount()
+    return text
+  }
+  await clock.advance(100)
+  expect(await look()).toContain('2 running')
+  await clock.advance(14500)
+  expect(await look()).toContain('All done')
+  await clock.advance(7000)
+  expect(await look()).not.toContain('All done')
 })

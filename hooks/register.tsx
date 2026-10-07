@@ -21,6 +21,7 @@ const VIEW = 'colorwheel-view'
 const view = atom({ plugin: 'colorwheel', key: 'view' } as const, null as DiagramView | null)
 const progress = atom({ plugin: 'colorwheel', key: 'progress' } as const, EMPTY)
 const SETTLE_MS = 6000
+const DEMO_STEPS = ['Read the layout code', 'Write the failing test', 'Move the elbow logic', 'Run the suite']
 const ZOOMS = [1, 1.5, 2, 3, 4, 6]
 const PAN = 0.15
 
@@ -96,11 +97,25 @@ export const register: Register = (on, options) => {
 
   on('session.start', async ($, e, next) => {
     const started = await next(e)
-    await $.command.register({ name: 'colorwheel', description: 'Show what ColorWheel draws' }).catch(() => undefined)
+    await $.command.register({ name: 'colorwheel', description: 'Show what ColorWheel draws; progress plays a demo of the progress row', argumentHint: '[progress]' }).catch(() => undefined)
     return started
   })
 
-  on('command.run', { command: 'colorwheel' }, () => ({ text: DEMO }))
+  on('command.run', { command: 'colorwheel' }, async ($, e) => {
+    if (e.args.trim() !== 'progress') return { text: DEMO }
+    const todo = (done: number, active: string): Todo[] =>
+      DEMO_STEPS.map((content, i) => ({ content, status: i < done ? 'completed' : i === done ? 'in_progress' : 'pending', ...(i === done ? { activeForm: active } : {}) }))
+    const steps: [number, (p: Progress) => Progress][] = [
+      [0, p => agentStarted(agentStarted(agentQueued(agentQueued(todosWritten(EMPTY, todo(0, 'Reading the layout code')), 'Explore', 'Map the layout code'), 'Plan', 'Plan the refactor'), 'demo-a', 'Explore'), 'demo-b', 'Plan')],
+      [3000, p => todosWritten(p, todo(1, 'Writing the failing test'))],
+      [6000, p => agentStopped(p, 'demo-a')],
+      [8000, p => todosWritten(p, todo(2, 'Moving the elbow logic'))],
+      [11000, p => todosWritten(agentStopped(p, 'demo-b'), todo(3, 'Running the suite'))],
+      [14000, p => todosWritten(p, todo(4, ''))],
+    ]
+    for (const [at, change] of steps) $.clock.after(at, () => void track($, change))
+    return { text: 'Progress demo: watch the row above the prompt for about 20 seconds.' }
+  })
 
   on('prompt.submit', async ($, e, next) => {
     if (summarize(await read($, progress)).isFinished) await update($, progress, () => EMPTY)

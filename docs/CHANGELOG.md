@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.1] - 2026-10-06
+
+### Added
+
+- `/colorwheel progress` plays a 20-second demo of the progress row.
+
 ## [0.2.0] - 2026-10-06
 
 ### Added
