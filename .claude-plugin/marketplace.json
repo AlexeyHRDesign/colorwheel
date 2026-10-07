@@ -2,6 +2,6 @@
   "name": "colorwheel",
   "owner": { "name": "Aleksei Druzhkov" },
   "plugins": [
-    { "name": "colorwheel", "source": "./", "version": "0.1.0", "description": "Readable, themed replies and full-width mermaid diagrams for Claude Code Desktop." }
+    { "name": "colorwheel", "source": "./", "version": "0.2.0", "description": "Readable, themed replies and full-width mermaid diagrams for Claude Code Desktop." }
   ]
 }

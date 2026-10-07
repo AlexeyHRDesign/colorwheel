@@ -1,13 +1,14 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderElement } from 'claude-code'
 
-import type { DiagramView } from '../types'
+import type { DiagramView, Progress, Todo } from '../types'
 import type { Segment } from './blocks'
 import { split } from './blocks'
 import { DEMO } from './demo'
 import type { Diagram } from './diagram'
 import { PX_PER_COLUMN, crop, diagram, fit } from './diagram'
 import { ALERTS, alertColor } from './palette'
+import { EMPTY, agentQueued, agentStarted, agentStopped, drawBand, summarize, taskCompleted, taskCreated, todosWritten } from './progress'
 
 const HINT = [
   'Replies are drawn by the ColorWheel mod in the Claude Code desktop app.',
@@ -18,6 +19,8 @@ const HINT = [
 
 const VIEW = 'colorwheel-view'
 const view = atom({ plugin: 'colorwheel', key: 'view' } as const, null as DiagramView | null)
+const progress = atom({ plugin: 'colorwheel', key: 'progress' } as const, EMPTY)
+const SETTLE_MS = 6000
 const ZOOMS = [1, 1.5, 2, 3, 4, 6]
 const PAN = 0.15
 
@@ -78,6 +81,16 @@ const drawReply = ($: EngineInterface, el: Elements, text: string, columns: numb
   </el.Box>
 )
 
+const track = async ($: EngineInterface, change: (p: Progress) => Progress) => {
+  await update($, progress, change)
+  if (!summarize(await read($, progress)).isFinished) return
+  $.clock.after(SETTLE_MS, () => {
+    void (async () => {
+      if (summarize(await read($, progress)).isFinished) await update($, progress, () => EMPTY)
+    })()
+  })
+}
+
 export const register: Register = (on, options) => {
   if (options.enabled === false) return
 
@@ -89,9 +102,52 @@ export const register: Register = (on, options) => {
 
   on('command.run', { command: 'colorwheel' }, () => ({ text: DEMO }))
 
-  on('prompt.submit', ($, e, next) => {
+  on('prompt.submit', async ($, e, next) => {
+    if (summarize(await read($, progress)).isFinished) await update($, progress, () => EMPTY)
     if (options.diagramHints === false || (e.origin.kind !== 'composer' && e.origin.kind !== 'bridge')) return next(e)
     return next({ ...e, context: [...(e.context ?? []), HINT] })
+  })
+
+  on('tool.call', async ($, e, next) => {
+    const input = e as unknown as { tool: string; description?: string; subagent_type?: string; todos?: Todo[] }
+    if ((input.tool === 'Agent' || input.tool === 'Task') && !e.agentId) {
+      await track($, p => agentQueued(p, input.subagent_type ?? 'general-purpose', input.description ?? input.subagent_type ?? 'subagent'))
+    }
+    if (input.tool === 'TodoWrite' && Array.isArray(input.todos) && !e.agentId) await track($, p => todosWritten(p, input.todos!))
+    return next(e)
+  })
+
+  on('classic.SubagentStart', async ($, e, next) => {
+    await track($, p => agentStarted(p, e.agent_id, e.agent_type))
+    return next(e)
+  })
+
+  on('classic.SubagentStop', async ($, e, next) => {
+    await track($, p => agentStopped(p, e.agent_id))
+    return next(e)
+  })
+
+  on('classic.TaskCreated', async ($, e, next) => {
+    await track($, p => taskCreated(p, e.task_id, e.task_subject))
+    return next(e)
+  })
+
+  on('classic.TaskCompleted', async ($, e, next) => {
+    await track($, p => taskCompleted(p, e.task_id))
+    return next(e)
+  })
+
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    const s = summarize(await read($, progress))
+    if (!s.isActive && !s.isFinished) return next(e)
+    const el = $.ui.resolve(e)
+    const below = await next(e)
+    return (
+      <el.Box flexDirection="column" width="100%">
+        {drawBand(el, s, e.surface, e.viewport?.columns ?? 100)}
+        {below ?? null}
+      </el.Box>
+    )
   })
 
   on('ui.render', { component: 'AssistantMessage' }, ($, e, next) => {

@@ -1,6 +1,6 @@
 {
   "name": "colorwheel",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "ColorWheel: replies in Claude Code Desktop drawn with the app's own HTML markdown, alert cards, and themed full-width mermaid diagrams and charts that follow light and dark mode.",
   "author": { "name": "Aleksei Druzhkov", "url": "https://github.com/AlexeyHRDesign" },
   "license": "MIT",
