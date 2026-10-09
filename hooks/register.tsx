@@ -1,14 +1,16 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, RenderElement } from 'claude-code'
 
-import type { DiagramView, Progress, Todo } from '../types'
+import type { DiagramView, Limit, Progress, Todo } from '../types'
 import type { Segment } from './blocks'
 import { split } from './blocks'
 import { DEMO } from './demo'
 import type { Diagram } from './diagram'
 import { PX_PER_COLUMN, crop, diagram, fit } from './diagram'
 import { ALERTS, alertColor } from './palette'
+import { frame } from './frame'
 import { EMPTY, agentQueued, agentStarted, agentStopped, drawBand, summarize, taskCompleted, taskCreated, todosWritten } from './progress'
+import { QUIET, addReading, drawWeather, pills } from './weather'
 
 const HINT = [
   'Replies are drawn by the ColorWheel mod in the Claude Code desktop app.',
@@ -20,7 +22,10 @@ const HINT = [
 const VIEW = 'colorwheel-view'
 const view = atom({ plugin: 'colorwheel', key: 'view' } as const, null as DiagramView | null)
 const progress = atom({ plugin: 'colorwheel', key: 'progress' } as const, EMPTY)
+const weather = atom({ plugin: 'colorwheel', key: 'weather' } as const, QUIET)
 const SETTLE_MS = 6000
+const BAND_MARGIN = 40
+const LIMITS_KEY = 'limits'
 const DEMO_STEPS = ['Read the layout code', 'Write the failing test', 'Move the elbow logic', 'Run the suite']
 const ZOOMS = [1, 1.5, 2, 3, 4, 6]
 const PAN = 0.15
@@ -92,11 +97,33 @@ const track = async ($: EngineInterface, change: (p: Progress) => Progress) => {
   })
 }
 
+const takeReading = async ($: EngineInterface) => {
+  const { context, rateLimits } = await $.session.usage()
+  if (!context?.window) return
+  const tokens = context.tokens ?? 0
+  const percent = Math.round(context.percent ?? (tokens / context.window) * 100)
+  const limits = (rateLimits ?? []).map(l => ({ kind: l.kind, percentUsed: l.percentUsed, ...(l.resetsAt ? { resetsAt: l.resetsAt } : {}) }))
+  // An empty list means no fresh figures, not that the limits went away: keep the last known.
+  await update($, weather, w => ({ readings: addReading(w.readings, { tokens, window: context.window, percent }), limits: limits.length ? limits : w.limits }))
+  if (limits.length) await $.store.set(LIMITS_KEY, limits)
+}
+
+// The limits are the account's, not the session's: the last known ones show at once in a new session.
+const restoreLimits = async ($: EngineInterface) => {
+  const saved = await $.store.get(LIMITS_KEY)
+  if (!Array.isArray(saved)) return
+  const now = await $.clock.now()
+  const limits = (saved as Limit[]).filter(l => typeof l?.kind === 'string' && typeof l.percentUsed === 'number' && !(l.resetsAt && Date.parse(l.resetsAt) <= now))
+  if (limits.length) await update($, weather, w => (w.limits.length ? w : { ...w, limits }))
+}
+
 export const register: Register = (on, options) => {
   if (options.enabled === false) return
 
   on('session.start', async ($, e, next) => {
     const started = await next(e)
+    await restoreLimits($).catch(() => undefined)
+    await takeReading($).catch(() => undefined)
     await $.command.register({ name: 'colorwheel', description: 'Show what ColorWheel draws; progress plays a demo of the progress row', argumentHint: '[progress]' }).catch(() => undefined)
     return started
   })
@@ -113,7 +140,9 @@ export const register: Register = (on, options) => {
       [11000, p => todosWritten(agentStopped(p, 'demo-b'), todo(3, 'Running the suite'))],
       [14000, p => todosWritten(p, todo(4, ''))],
     ]
-    for (const [at, change] of steps) $.clock.after(at, () => void track($, change))
+    for (const [at, change] of steps) {
+      $.clock.after(at, () => void track($, change).catch(err => $.ui.toast(`Progress demo failed: ${String(err)}`)))
+    }
     return { text: 'Progress demo: watch the row above the prompt for about 20 seconds.' }
   })
 
@@ -121,6 +150,12 @@ export const register: Register = (on, options) => {
     if (summarize(await read($, progress)).isFinished) await update($, progress, () => EMPTY)
     if (options.diagramHints === false || (e.origin.kind !== 'composer' && e.origin.kind !== 'bridge')) return next(e)
     return next({ ...e, context: [...(e.context ?? []), HINT] })
+  })
+
+  on('turn.complete', async ($, e, next) => {
+    const done = await next(e)
+    if (!e.agentId) await takeReading($).catch(() => undefined)
+    return done
   })
 
   on('tool.call', async ($, e, next) => {
@@ -153,13 +188,37 @@ export const register: Register = (on, options) => {
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (e.props.hasSurvey) return next(e)
     const s = summarize(await read($, progress))
-    if (!s.isActive && !s.isFinished) return next(e)
+    const metrics = pills(await read($, weather), await $.clock.now())
+    const hasProgress = s.isActive || s.isFinished
     const el = $.ui.resolve(e)
-    const below = await next(e)
+    const desktop = e.surface !== 'terminal' && 'Svg' in el
+    // The desktop frame always shows: limits and weather are worth a glance at any time.
+    if (!desktop && !hasProgress && !metrics.length) return next(e)
+    // With no hook beneath, next() rejects rather than resolving empty; the band must still draw.
+    const below = await next(e).catch(() => null)
+    const columns = e.props.bodyColumns ?? e.viewport?.columns ?? 100
+    if (desktop) {
+      const f = frame(hasProgress ? s : null, metrics)
+      // The Svg needs a width in px: the frame's markup stretches to whatever it gets, so
+      // a width a little under the transcript column is safe.
+      const width = Math.max(320, Math.round((e.viewport?.columns ?? 100) * PX_PER_COLUMN) - BAND_MARGIN)
+      return (
+        <el.Box flexDirection="column" width="100%">
+          <el.Box width="100%">
+            <el.Svg source={f.svg} alt={f.alt} width={width} height={f.height} isInteractive />
+          </el.Box>
+          {below ?? null}
+        </el.Box>
+      )
+    }
     return (
       <el.Box flexDirection="column" width="100%">
-        {drawBand(el, s, e.surface, e.viewport?.columns ?? 100)}
+        <el.Box flexDirection="row" width="100%" columnGap={3}>
+          <el.Box flexGrow={1} flexShrink={1}>{hasProgress ? drawBand(el, s, e.surface, columns) : null}</el.Box>
+          {drawWeather(el, await read($, weather), await $.clock.now())}
+        </el.Box>
         {below ?? null}
       </el.Box>
     )

@@ -35,11 +35,13 @@ test('nothing tracked is neither active nor finished', async () => {
   expect(summarize(EMPTY)).toMatchObject({ isActive: false, isFinished: false })
 })
 
-const stand = (on: On) =>
-  on('ui.render', ($, e) => {
+const stand = (on: On, withClock = true) => {
+  if (withClock) mock.clock(on)
+  return on('ui.render', ($, e) => {
     const { Text } = $.ui.resolve(e)
     return <Text>weather</Text>
   })
+}
 
 const band = (surface: 'terminal' | 'desktop') => ({ plugin: 'colorwheel', component: 'AbovePrompt' as const, props: {}, viewport: { columns: 100, rows: 40 }, surface })
 
@@ -54,14 +56,15 @@ test('the band stays out of the way while nothing runs', async ($, on) => {
 test('a running subagent and a todo list draw a progress row above the band below', async ($, on) => {
   stand(on)
   on('classic.SubagentStart', () => ({}))
-  on('tool.call', () => ({ text: 'ok' }) as never)
+  on('tool.call', () => ({ result: 'ok' }) as never)
   await $.tool.call({ tool: 'TodoWrite', todos: [{ content: 'One', status: 'completed', activeForm: 'Doing one' }, { content: 'Two', status: 'in_progress', activeForm: 'Doing two' }] } as never).catch(() => undefined)
   await $.classic.SubagentStart({ agent_id: 'x', agent_type: 'Explore' } as never).catch(() => undefined)
   for (const surface of ['desktop', 'terminal'] as const) {
     const ui = await $.ui.mount(band(surface) as never)
-    expect(await ui.find({ type: 'Text', text: /1 running/ })).toBeDefined()
-    expect(await ui.find({ type: 'Text', text: /1\/2/ })).toBeDefined()
-    expect(await ui.find({ type: 'Text', text: /Doing two/ })).toBeDefined()
+    const all = [...(await ui.findAll({ type: 'Text' })).map(t => t.text), ...(await ui.findAll({ type: 'Svg' })).map(x => JSON.stringify(x))].join('|')
+    expect(all).toContain('1 running')
+    expect(all).toContain('1/2')
+    expect(all).toContain('Doing two')
     expect((await ui.find({ type: 'Text', text: /^weather$/ }))?.text).toBe('weather')
     await ui.unmount()
   }
@@ -69,12 +72,12 @@ test('a running subagent and a todo list draw a progress row above the band belo
 
 test('/colorwheel progress plays a demo that ends in All done and then hides', async ($, on) => {
   const clock = mock.clock(on)
-  stand(on)
+  stand(on, false)
   const reply = await $.command.run({ command: 'colorwheel', args: 'progress' } as never)
   expect(JSON.stringify(reply)).toContain('Progress demo')
   const look = async () => {
     const ui = await $.ui.mount(band('desktop') as never)
-    const text = (await ui.findAll({ type: 'Text' })).map(t => t.text).join('|')
+    const text = [...(await ui.findAll({ type: 'Text' })).map(t => t.text), ...(await ui.findAll({ type: 'Svg' })).map(x => JSON.stringify(x))].join('|')
     await ui.unmount()
     return text
   }
