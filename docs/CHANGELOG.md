@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.6] - 2026-10-09
+
+### Fixed
+
+- The band was still refused with nothing beneath it: `next(e)` then resolves to the engine's own node, which the app refuses under a Box that sets `width`. The Boxes that hold it no longer set one.
+
 ## [0.3.5] - 2026-10-09
 
 ### Fixed

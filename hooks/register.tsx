@@ -204,8 +204,9 @@ export const register: Register = (on, options) => {
       // The Svg needs a width in px: the frame's markup stretches to whatever it gets, so
       // a width a little under the transcript column is safe.
       const width = Math.max(320, Math.round((e.viewport?.columns ?? 100) * PX_PER_COLUMN) - BAND_MARGIN)
+      // `below` may be the engine's own node, which the app refuses under a Box that sets width.
       return (
-        <el.Box flexDirection="column" width="100%">
+        <el.Box flexDirection="column">
           <el.Box width="100%">
             <el.Svg source={f.svg} alt={f.alt} width={width} height={f.height} isInteractive />
           </el.Box>
@@ -214,7 +215,7 @@ export const register: Register = (on, options) => {
       )
     }
     return (
-      <el.Box flexDirection="column" width="100%">
+      <el.Box flexDirection="column">
         <el.Box flexDirection="row" width="100%" columnGap={3}>
           <el.Box flexGrow={1} flexShrink={1}>{hasProgress ? drawBand(el, s, e.surface, columns) : null}</el.Box>
           {drawWeather(el, await read($, weather), await $.clock.now())}
