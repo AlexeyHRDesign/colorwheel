@@ -21,12 +21,14 @@ const FPS = 12
 const MS = 1000 / FPS
 
 const now = Date.parse('2026-10-09T12:00:00Z')
-const readings = [40, 62, 75, 93, 118, 141, 166, 190, 214, 246, 281, 330].map(k => ({ tokens: k * 1000, window: 1_000_000, percent: Math.round(k / 10) }))
-const weather = (fiveHour: number) => ({
-  readings,
+// Usage as it grows through the turn: [5-hour %, 7-day %, context %]. The mod redraws in steps,
+// so each band state carries its own figures.
+type Usage = [number, number, number]
+const weather = ([fiveHour, sevenDay, context]: Usage) => ({
+  readings: [40, 62, 75, 93, 118, 141, 166, 190, 214, 246, 281, context * 10].map(k => ({ tokens: k * 1000, window: 1_000_000, percent: Math.round(k / 10) })),
   limits: [
     { kind: 'five_hour', percentUsed: fiveHour, resetsAt: new Date(now + 2.6 * 3_600_000).toISOString() },
-    { kind: 'seven_day', percentUsed: 64, resetsAt: new Date(now + 3.2 * 86_400_000).toISOString() },
+    { kind: 'seven_day', percentUsed: sevenDay, resetsAt: new Date(now + 3.2 * 86_400_000).toISOString() },
   ],
 })
 
@@ -41,14 +43,14 @@ const REPLY = ['Two subagents are mapping the layout code while I write the fail
 // The timeline, in ms. Band states switch at these marks, exactly as the mod switches them.
 const TYPE_END = 1900
 const SENT = 2200
-const BAND: [number, Summary | null, number][] = [
-  [0, null, 30],
-  [SENT + 300, step(2, 0, 0, 'Reading the layout code'), 30],
-  [3900, step(2, 0, 1, 'Writing the failing test'), 30],
-  [5100, step(1, 1, 1, 'Writing the failing test'), 30],
-  [6200, step(1, 1, 2, 'Moving the elbow logic'), 31],
-  [7400, step(0, 2, 3, 'Running the suite'), 31],
-  [8600, step(0, 2, 4), 31],
+const BAND: [number, Summary | null, Usage][] = [
+  [0, null, [30, 61, 33]],
+  [SENT + 300, step(2, 0, 0, 'Reading the layout code'), [34, 62, 35]],
+  [3900, step(2, 0, 1, 'Writing the failing test'), [39, 63, 38]],
+  [5100, step(1, 1, 1, 'Writing the failing test'), [44, 64, 40]],
+  [6200, step(1, 1, 2, 'Moving the elbow logic'), [49, 65, 42]],
+  [7400, step(0, 2, 3, 'Running the suite'), [54, 66, 45]],
+  [8600, step(0, 2, 4), [58, 67, 47]],
 ]
 const LINE_1 = [SENT + 400, SENT + 1900] as const
 const LINE_2 = [8600, 9700] as const
@@ -62,15 +64,14 @@ const words = (line: string, [from, to]: readonly [number, number], t: number) =
 }
 
 const at = (t: number) => {
-  const [, band, fiveHour] = [...BAND].reverse().find(([mark]) => t >= mark)!
+  const [, band, usage] = [...BAND].reverse().find(([mark]) => t >= mark)!
   const typed = t < TYPE_END ? PROMPT.slice(0, Math.round((t / TYPE_END) * PROMPT.length)) : t < SENT ? PROMPT : ''
-  const working = t >= SENT && t < 8600
-  return window(frame(band, pills(weather(fiveHour), now)), {
+  return window(frame(band, pills(weather(usage), now)), {
     user: t >= SENT ? PROMPT : null,
     reply: [words(REPLY[0]!, LINE_1, t), words(REPLY[1]!, LINE_2, t)],
     lines: 2,
     ...(typed ? { draft: typed } : {}),
-    spin: working ? ((t - SENT) * 0.36) % 360 : null,
+    context: usage[2],
   })
 }
 

@@ -22,8 +22,8 @@ const css =
   '.w-btn{fill:#383835;stroke:#4a4844}.w-line{stroke:#9c978f}.w-spin{stroke:#7aa7ff}}'
 
 // `user` is null before the message is sent; `lines` keeps room for a reply still streaming in;
-// `draft` is text being typed into the prompt; `spin` is the activity ring's angle, or null at rest.
-export type Chat = { user: string | null; reply: string[]; lines?: number; draft?: string; spin?: number | null }
+// `draft` is text being typed into the prompt; `context` is the share of the context window the ring under the prompt shows.
+export type Chat = { user: string | null; reply: string[]; lines?: number; draft?: string; context?: number }
 
 export const window = (band: { svg: string; height: number }, chat: Chat) => {
   const cw = W - 2 * SIDE
@@ -88,9 +88,12 @@ export const window = (band: { svg: string; height: number }, chat: Chat) => {
   )
   parts.push(t(SIDE + 70, row + 5, 14, 'w-fg', 'Auto'))
   parts.push(t(W - SIDE - 168, row + 5, 14, 'w-fg', 'Opus 5.5'), t(W - SIDE - 92, row + 5, 14, 'w-fg', 'Medium'))
-  const spin = chat.spin === undefined ? 0 : chat.spin
-  if (spin === null) parts.push(`<circle class="w-line" cx="${W - SIDE - 15}" cy="${row}" r="7" fill="none" stroke-width="2" opacity="0.35"/>`)
-  else parts.push(`<path class="w-spin" transform="rotate(${spin.toFixed(1)} ${W - SIDE - 15} ${row})" d="M${W - SIDE - 15} ${row - 7}a7 7 0 1 1 -7 7" fill="none" stroke-width="2" stroke-linecap="round"/>`)
+  // The context ring: how full the window is, drawn clockwise from the top. It never spins.
+  const ring = Math.max(0, Math.min(100, chat.context ?? 33)) / 100
+  const rx = W - SIDE - 15
+  const C = 2 * Math.PI * 7
+  parts.push(`<circle class="w-line" cx="${rx}" cy="${row}" r="7" fill="none" stroke-width="2" opacity="0.3"/>`)
+  parts.push(`<circle class="w-spin" cx="${rx}" cy="${row}" r="7" fill="none" stroke-width="2" stroke-linecap="round" stroke-dasharray="${(C * ring).toFixed(2)} ${C.toFixed(2)}" transform="rotate(-90 ${rx} ${row})"/>`)
   y = row + 22
 
   return (
