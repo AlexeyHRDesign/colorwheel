@@ -34,6 +34,8 @@ const ZOOMS = [1, 1.5, 2, 3, 4, 6]
 const PAN = 0.15
 // Room kept free in the frame for the invert button, left of the weather icon.
 const SLOT_PX = 2 * PX_PER_COLUMN + 8
+// A cell of the band's own row, measured in the desktop app: wider than the transcript's PX_PER_COLUMN.
+const BUTTON_CELL_PX = 10.7
 
 type Elements = ReturnType<EngineInterface['ui']['resolve']>
 
@@ -232,7 +234,7 @@ export const register: Register = (on, options) => {
             <el.Svg source={f.svg} alt={f.alt} width={width} height={f.height} isInteractive />
             {/* The Svg takes no presses, so the invert button lies over the gap the frame keeps for it.
                 Placed from the right: the cell width is only estimated, and from the left its error grows with the band. */}
-            <el.Box position="absolute" top={1} right={Math.ceil((f.slotRight + SLOT_PX) / PX_PER_COLUMN)}>
+            <el.Box position="absolute" top={0} bottom={0} right={Math.round((f.slotRight + 8) / BUTTON_CELL_PX)} flexDirection="row" alignItems="center">
               <el.Button key={INVERT_KEY} label={INVERT_GLYPH} plain dimColor onPress={toggle} />
             </el.Box>
           </el.Box>
