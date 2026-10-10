@@ -97,3 +97,14 @@ test('the band draws with nothing beneath it', async ($, on) => {
   expect((await ui.findAll({ type: 'Svg' })).length).toBe(1)
   await ui.unmount()
 })
+
+test('a saved limit whose window has reset comes back empty, not missing', async ($, on) => {
+  stub(on)
+  on('session.start', () => ({ cwd: '.' }))
+  mock.store(on, { limits: [{ kind: 'five_hour', percentUsed: 80, resetsAt: '1960-01-01T00:00:00Z' }, { kind: 'seven_day', percentUsed: 40, resetsAt: '2999-01-01T00:00:00Z' }] })
+  on('session.usage', () => ({ value: usage(0) }) as never)
+  await $.session.start({ cwd: '.' } as never).catch(() => undefined)
+  const desktop = await texts($, 'desktop')
+  expect(desktop).toContain('5h 0%')
+  expect(desktop).toContain('7d 40%')
+})

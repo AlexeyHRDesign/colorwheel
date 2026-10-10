@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.1] - 2026-10-09
+
+### Fixed
+
+- In a new session, a saved limit whose window had reset since was dropped, so its edge was missing until the first reply. It now comes back at 0%.
+
 ## [0.4.0] - 2026-10-09
 
 The first public release.

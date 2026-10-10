@@ -115,7 +115,10 @@ const restoreLimits = async ($: EngineInterface) => {
   const saved = await $.store.get(LIMITS_KEY)
   if (!Array.isArray(saved)) return
   const now = await $.clock.now()
-  const limits = (saved as Limit[]).filter(l => typeof l?.kind === 'string' && typeof l.percentUsed === 'number' && !(l.resetsAt && Date.parse(l.resetsAt) <= now))
+  // A window that reset since it was saved starts over empty; it is not dropped, or its edge vanishes.
+  const limits = (saved as Limit[])
+    .filter(l => typeof l?.kind === 'string' && typeof l.percentUsed === 'number')
+    .map(l => (l.resetsAt && Date.parse(l.resetsAt) <= now ? { kind: l.kind, percentUsed: 0 } : l))
   if (limits.length) await update($, weather, w => (w.limits.length ? w : { ...w, limits }))
 }
 
