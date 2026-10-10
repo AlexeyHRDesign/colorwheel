@@ -230,8 +230,9 @@ export const register: Register = (on, options) => {
         <el.Box flexDirection="column">
           <el.Box key="cw-band" position="relative" marginLeft={-1} marginRight={-1} marginTop={-1} marginBottom={-1}>
             <el.Svg source={f.svg} alt={f.alt} width={width} height={f.height} isInteractive />
-            {/* The Svg takes no presses, so the invert button lies over the gap the frame keeps for it. */}
-            <el.Box position="absolute" top={0} left={Math.max(0, Math.round((width - f.slotRight - SLOT_PX) / PX_PER_COLUMN))}>
+            {/* The Svg takes no presses, so the invert button lies over the gap the frame keeps for it.
+                Placed from the right: the cell width is only estimated, and from the left its error grows with the band. */}
+            <el.Box position="absolute" top={1} right={Math.ceil((f.slotRight + SLOT_PX) / PX_PER_COLUMN)}>
               <el.Button key={INVERT_KEY} label={INVERT_GLYPH} plain dimColor onPress={toggle} />
             </el.Box>
           </el.Box>
