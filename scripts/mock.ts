@@ -90,7 +90,7 @@ export const window = (band: { svg: string; height: number }, chat: Chat) => {
   parts.push(t(W - SIDE - 168, row + 5, 14, 'w-fg', 'Opus 5.5'), t(W - SIDE - 92, row + 5, 14, 'w-fg', 'Medium'))
   const spin = chat.spin === undefined ? 0 : chat.spin
   if (spin === null) parts.push(`<circle class="w-line" cx="${W - SIDE - 15}" cy="${row}" r="7" fill="none" stroke-width="2" opacity="0.35"/>`)
-  else parts.push(`<path class="w-spin" transform="rotate(${spin.toFixed(1)} ${W - SIDE - 15} ${row})" d="M${W - SIDE - 8} ${row - 7}a7 7 0 1 1 -7 7" fill="none" stroke-width="2" stroke-linecap="round"/>`)
+  else parts.push(`<path class="w-spin" transform="rotate(${spin.toFixed(1)} ${W - SIDE - 15} ${row})" d="M${W - SIDE - 15} ${row - 7}a7 7 0 1 1 -7 7" fill="none" stroke-width="2" stroke-linecap="round"/>`)
   y = row + 22
 
   return (
