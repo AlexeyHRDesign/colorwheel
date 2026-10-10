@@ -64,7 +64,12 @@ const words = (line: string, [from, to]: readonly [number, number], t: number) =
 }
 
 const at = (t: number) => {
-  const [, band, usage] = [...BAND].reverse().find(([mark]) => t >= mark)!
+  const [, band, stepped] = [...BAND].reverse().find(([mark]) => t >= mark)!
+  // The limits ease down across the whole loop, the 5-hour one fast and the 7-day one slowly,
+  // as the rolling windows free what was used earlier. Context still steps with each turn.
+  const p = Math.min(1, t / (END - 1500))
+  const eased = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2
+  const usage: Usage = [58 - 36 * eased, 67 - 6 * eased, stepped[2]]
   const typed = t < TYPE_END ? PROMPT.slice(0, Math.round((t / TYPE_END) * PROMPT.length)) : t < SENT ? PROMPT : ''
   return window(frame(band, pills(weather(usage), now)), {
     user: t >= SENT ? PROMPT : null,
