@@ -21,7 +21,9 @@ const css =
   '.w-block{fill:#30302e}.w-bubble{fill:#30302e}.w-input{fill:#30302e;stroke:#45433f}.w-add{fill:#4ade80}.w-del{fill:#fb7185}' +
   '.w-btn{fill:#383835;stroke:#4a4844}.w-line{stroke:#9c978f}.w-spin{stroke:#7aa7ff}}'
 
-export type Chat = { user: string; reply: string[] }
+// `user` is null before the message is sent; `lines` keeps room for a reply still streaming in;
+// `draft` is text being typed into the prompt; `spin` is the activity ring's angle, or null at rest.
+export type Chat = { user: string | null; reply: string[]; lines?: number; draft?: string; spin?: number | null }
 
 export const window = (band: { svg: string; height: number }, chat: Chat) => {
   const cw = W - 2 * SIDE
@@ -38,14 +40,16 @@ export const window = (band: { svg: string; height: number }, chat: Chat) => {
   y = 44 + 24
 
   // The person's message, right-aligned in a bubble.
-  const uw = Math.min(cw * 0.75, chat.user.length * 7.4 + 32)
-  parts.push(`<rect class="w-bubble" x="${W - SIDE - uw}" y="${y}" width="${uw.toFixed(0)}" height="40" rx="14"/>`)
-  parts.push(t(W - SIDE - uw + 16, y + 25, 14, 'w-fg', chat.user))
+  if (chat.user !== null) {
+    const uw = Math.min(cw * 0.75, chat.user.length * 7.4 + 32)
+    parts.push(`<rect class="w-bubble" x="${W - SIDE - uw}" y="${y}" width="${uw.toFixed(0)}" height="40" rx="14"/>`)
+    parts.push(t(W - SIDE - uw + 16, y + 25, 14, 'w-fg', chat.user))
+  }
   y += 40 + 26
 
   // The reply.
-  for (const line of chat.reply) {
-    parts.push(t(SIDE, y + 14, 14, 'w-fg', line))
+  for (let i = 0; i < Math.max(chat.lines ?? 0, chat.reply.length); i++) {
+    if (chat.reply[i]) parts.push(t(SIDE, y + 14, 14, 'w-fg', chat.reply[i]!))
     y += 24
   }
   y += 24
@@ -66,7 +70,13 @@ export const window = (band: { svg: string; height: number }, chat: Chat) => {
 
   // The prompt.
   parts.push(`<rect class="w-input" x="${SIDE}" y="${y}" width="${cw}" height="52" rx="14" stroke-width="1"/>`)
-  parts.push(t(SIDE + 18, y + 31, 15, 'w-muted', 'Type / for commands'))
+  if (chat.draft) {
+    parts.push(t(SIDE + 18, y + 31, 15, 'w-fg', chat.draft))
+    const caret = SIDE + 18 + chat.draft.length * 7.35 + 2
+    parts.push(`<line class="w-line" x1="${caret.toFixed(1)}" y1="${y + 17}" x2="${caret.toFixed(1)}" y2="${y + 35}" stroke-width="1.4"/>`)
+  } else {
+    parts.push(t(SIDE + 18, y + 31, 15, 'w-muted', 'Type / for commands'))
+  }
   parts.push(`<path class="w-line" d="M${W - SIDE - 22} ${y + 20}v8h-10m3 -3l-3 3 3 3" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>`)
   y += 52 + 10
 
@@ -78,7 +88,9 @@ export const window = (band: { svg: string; height: number }, chat: Chat) => {
   )
   parts.push(t(SIDE + 70, row + 5, 14, 'w-fg', 'Auto'))
   parts.push(t(W - SIDE - 168, row + 5, 14, 'w-fg', 'Opus 5.5'), t(W - SIDE - 92, row + 5, 14, 'w-fg', 'Medium'))
-  parts.push(`<path class="w-spin" d="M${W - SIDE - 8} ${row - 7}a7 7 0 1 1 -7 7" fill="none" stroke-width="2" stroke-linecap="round"/>`)
+  const spin = chat.spin === undefined ? 0 : chat.spin
+  if (spin === null) parts.push(`<circle class="w-line" cx="${W - SIDE - 15}" cy="${row}" r="7" fill="none" stroke-width="2" opacity="0.35"/>`)
+  else parts.push(`<path class="w-spin" transform="rotate(${spin.toFixed(1)} ${W - SIDE - 15} ${row})" d="M${W - SIDE - 8} ${row - 7}a7 7 0 1 1 -7 7" fill="none" stroke-width="2" stroke-linecap="round"/>`)
   y = row + 22
 
   return (
