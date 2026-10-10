@@ -45,6 +45,8 @@ claude plugin install colorwheel@colorwheel --scope user
 
 Restart Claude Code after installing. From a local checkout, pass the folder path to `marketplace add` instead.
 
+The installer may say that two options are not set yet; both default to on, so there is nothing to configure. ColorWheel needs a Claude Code build with mods (plugins with a `hooks` module); it is tested on 2.1.295 in the desktop app on Windows.
+
 ColorWheel draws the whole band above the prompt. Another mod that draws there without handing the band on will hide it; Token Weather is one, and ColorWheel replaces it.
 
 ## Use
