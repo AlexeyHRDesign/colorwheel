@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0] - 2026-10-09
+
+### Added
+
+- A README with images drawn by the mod's own code (`scripts/readme-images.ts`), a logo and a social preview.
+
+### Changed
+
+- Progress text that runs into the metrics fades out instead of cutting a word.
+- Each limit's whole edge shows its tooltip, not only its label.
+- An empty frame says it waits for the first reply.
+
 ## [0.3.8] - 2026-10-09
 
 ### Changed

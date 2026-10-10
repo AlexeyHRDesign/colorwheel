@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 495 215" width="495" height="215" style="--bg:var(--cw-bg);--fg:var(--cw-fg);--line:var(--cw-line);--accent:var(--cw-accent);--muted:var(--cw-muted);--surface:var(--cw-surface);--border:var(--cw-border)"><style>svg{--cw-bg:#ffffff;--cw-fg:#29261b;--cw-line:#a8a29e;--cw-accent:#2563eb;--cw-muted:#6f6a64;--cw-surface:#f1f5fe;--cw-border:#9db8ef;--cw-s0:#2563eb;--cw-s1:#0f8a7e;--cw-s2:#c2410c;--cw-s3:#7c3aed;--cw-s4:#be185d;--cw-s5:#4d7c0f}@media (prefers-color-scheme: dark){svg{--cw-bg:#262624;--cw-fg:#ece9e3;--cw-line:#77726b;--cw-accent:#7aa7ff;--cw-muted:#aaa59e;--cw-surface:#28324a;--cw-border:#5677c2;--cw-s0:#7aa7ff;--cw-s1:#5fd0c4;--cw-s2:#f5a25d;--cw-s3:#b49cff;--cw-s4:#f38bb8;--cw-s5:#a5d16b}}text{font-family:system-ui,-apple-system,'Segoe UI',sans-serif}.mono,text.mono{font-family:ui-monospace,'Cascadia Mono',Consolas,monospace}</style>
+<style>
+  
+  text { font-family: 'system-ui', system-ui, sans-serif; }
+  svg {
+    /* Derived from --bg and --fg (overridable via --line, --accent, etc.) */
+    --_text:          var(--fg);
+    --_text-sec:      var(--muted, color-mix(in srgb, var(--fg) 60%, var(--bg)));
+    --_text-muted:    var(--muted, color-mix(in srgb, var(--fg) 40%, var(--bg)));
+    --_text-faint:    color-mix(in srgb, var(--fg) 25%, var(--bg));
+    --_line:          var(--line, color-mix(in srgb, var(--fg) 50%, var(--bg)));
+    --_arrow:         var(--accent, color-mix(in srgb, var(--fg) 85%, var(--bg)));
+    --_node-fill:     var(--surface, color-mix(in srgb, var(--fg) 3%, var(--bg)));
+    --_node-stroke:   var(--border, color-mix(in srgb, var(--fg) 20%, var(--bg)));
+    --_group-fill:    var(--bg);
+    --_group-hdr:     color-mix(in srgb, var(--fg) 5%, var(--bg));
+    --_inner-stroke:  color-mix(in srgb, var(--fg) 12%, var(--bg));
+    --_key-badge:     color-mix(in srgb, var(--fg) 10%, var(--bg));
+  }
+</style>
+<defs>
+  <marker id="arrowhead" markerWidth="8" markerHeight="5" refX="7" refY="2.5" orient="auto">
+    <polygon points="0 0, 8 2.5, 0 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
+  </marker>
+  <marker id="arrowhead-start" markerWidth="8" markerHeight="5" refX="1" refY="2.5" orient="auto-start-reverse">
+    <polygon points="8 0, 0 2.5, 8 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
+  </marker>
+</defs>
+<polyline class="edge" data-from="R" data-to="S" data-style="solid" data-arrow-start="false" data-arrow-end="true" points="100.036,107.35000000000001 156.036,107.35000000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="S" data-to="M" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="text" points="271.18,107.35000000000001 289.18,107.35000000000001 289.18,42.45 366.034,42.45" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="S" data-to="C" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="code" points="271.18,107.35000000000001 367.51599999999996,107.35000000000001" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="S" data-to="D" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="mermaid" points="271.18,107.35000000000001 289.18,107.35000000000001 289.18,172.25 373.07349999999997,172.25" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<g class="edge-label" data-from="S" data-to="M" data-label="text">
+  <rect x="310.46599999999995" y="27.300000000000004" width="34.282" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="327.60699999999997" y="42.45" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">text</text>
+</g>
+<g class="edge-label" data-from="S" data-to="C" data-label="code">
+  <rect x="298.643" y="92.2" width="41.41" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="319.34799999999996" y="107.35000000000001" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">code</text>
+</g>
+<g class="edge-label" data-from="S" data-to="D" data-label="mermaid">
+  <rect x="302.69975" y="157.1" width="56.854000000000006" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="331.12675" y="172.25" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">mermaid</text>
+</g>
+<g class="node" data-id="R" data-label="Reply" data-shape="rectangle">
+  <rect x="24" y="88.9" width="76.036" height="36.900000000000006" rx="0" ry="0" fill="color-mix(in srgb, var(--cw-s0) 13%, var(--cw-bg))" stroke="var(--cw-s0)" stroke-width="0.75" />
+  <text x="62.018" y="107.35000000000001" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Reply</text>
+</g>
+<g class="node" data-id="S" data-label="Split" data-shape="diamond">
+  <polygon points="213.608,76.9 271.18,107.35000000000001 213.608,137.8 156.036,107.35000000000001" fill="color-mix(in srgb, var(--cw-s1) 13%, var(--cw-bg))" stroke="var(--cw-s1)" stroke-width="0.75" />
+  <text x="213.608" y="107.35000000000001" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Split</text>
+</g>
+<g class="node" data-id="M" data-label="Markdown" data-shape="rectangle">
+  <rect x="366.034" y="24" width="104.93499999999999" height="36.900000000000006" rx="0" ry="0" fill="color-mix(in srgb, var(--cw-s2) 13%, var(--cw-bg))" stroke="var(--cw-s2)" stroke-width="0.75" />
+  <text x="418.50149999999996" y="42.45" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Markdown</text>
+</g>
+<g class="node" data-id="C" data-label="Code view" data-shape="rectangle">
+  <rect x="367.51599999999996" y="88.9" width="101.971" height="36.900000000000006" rx="0" ry="0" fill="color-mix(in srgb, var(--cw-s2) 13%, var(--cw-bg))" stroke="var(--cw-s2)" stroke-width="0.75" />
+  <text x="418.50149999999996" y="107.35000000000001" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Code view</text>
+</g>
+<g class="node" data-id="D" data-label="Diagram" data-shape="rectangle">
+  <rect x="373.07349999999997" y="153.8" width="90.856" height="36.900000000000006" rx="0" ry="0" fill="color-mix(in srgb, var(--cw-s2) 13%, var(--cw-bg))" stroke="var(--cw-s2)" stroke-width="0.75" />
+  <text x="418.50149999999996" y="172.25" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Diagram</text>
+</g>
+</svg>
