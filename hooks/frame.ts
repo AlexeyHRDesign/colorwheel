@@ -17,6 +17,7 @@ const SIDE_INSET = 6
 const TAG_CHAR = 5.5
 const TAG_PAD = 3
 const TAG_FONT = 9.5
+const TEXT_FADE = 28
 
 // Fixed colour per budget, so an edge keeps its identity as it wipes; context takes its forecast tone.
 const EDGE: Record<string, number> = { '5h': 0, '7d': 2 }
@@ -108,6 +109,9 @@ export const frame = (s: Summary | null, list: readonly Pill[]): { svg: string; 
     const width = label.length * TAG_CHAR + 2 * TAG_PAD
     const from = flip ? `calc(${at} - ${(width + 4).toFixed(1)}px)` : `calc(${at} + 4px)`
     cuts.push(`<rect y="${ty - 6}" height="12" style="x:${from};width:${width.toFixed(1)}px" fill="#000"/>`)
+    // The whole edge answers with the tooltip, not only its small label.
+    const hitY = y === 0 ? 0 : h - 2 * EDGE_INSET
+    tags.push(`<rect class="hit" x="0" y="${hitY}" width="100%" height="${2 * EDGE_INSET}"><title>${esc(p.tip.join('\n'))}</title></rect>`)
     tags.push(
       `<g class="t${ringOf(p)}"><title>${esc(p.tip.join('\n'))}</title><text class="edge-tag" x="${at}" dx="${flip ? -(4 + TAG_PAD) : 4 + TAG_PAD}" y="${ty}" text-anchor="${flip ? 'end' : 'start'}">${esc(label)}</text></g>`,
     )
@@ -137,13 +141,20 @@ export const frame = (s: Summary | null, list: readonly Pill[]): { svg: string; 
   const metricsWidth = -right - METRIC_GAP
   body.push(`<svg x="100%" y="0" overflow="visible"><g transform="translate(${-(inner + PAD)} 0)">${metrics.join('')}</g></svg>`)
 
-  // Progress text on the left.
-  // Progress text on the left, cut where the metrics begin.
+  // Progress text on the left; where it would run into the metrics it fades out rather than cutting a word.
   if (hasProgress) {
     const reserve = 2 * (inner + PAD) + Math.max(0, metricsWidth) + METRIC_GAP
-    defs.push(`<clipPath id="text"><rect x="0" y="0" style="width:calc(100% - ${reserve.toFixed(0)}px)" height="${h}"/></clipPath>`)
+    const solid = `calc(100% - ${(reserve + TEXT_FADE).toFixed(0)}px)`
+    defs.push(
+      `<linearGradient id="textg"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>` +
+        `<mask id="text" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="${h}">` +
+        `<rect x="0" y="0" style="width:${solid}" height="${h}" fill="#fff"/>` +
+        `<rect y="0" style="x:${solid};width:${TEXT_FADE}px" height="${h}" fill="url(#textg)"/></mask>`,
+    )
     const tspans = spans(s!).map(sp => `<tspan class="${sp.cls}${sp.tone === undefined ? '' : ` t${sp.tone}`}">${esc(sp.text)}</tspan>`)
-    body.push(`<g clip-path="url(#text)"><text x="${inner + PAD}" y="${mid}" xml:space="preserve">${tspans.join('')}</text></g>`)
+    body.push(`<g mask="url(#text)"><text x="${inner + PAD}" y="${mid}" xml:space="preserve">${tspans.join('')}</text></g>`)
+  } else if (!list.length) {
+    body.push(`<text class="muted" x="${inner + PAD}" y="${mid}">Context and limits show after the first reply</text>`)
   }
 
   const alt = [
