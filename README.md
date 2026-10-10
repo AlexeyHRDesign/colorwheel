@@ -10,7 +10,7 @@ ColorWheel is a [Claude Code](https://docs.anthropic.com/en/docs/claude-code) mo
 
 ## The band above the prompt
 
-<img src="docs/images/frame-tasks.svg" alt="The band while two subagents and a task list run: Agents 2 running, Tasks 2/5, the 5-hour limit at 31% on the top edge, the 7-day limit at 64% on the bottom edge, and the context at 33%" width="100%">
+<img src="docs/images/window-tasks.svg" alt="Claude Code Desktop with ColorWheel: under the chat, between the repository row and the prompt, the band shows Agents 2 running, Tasks 2/5, the 5-hour limit at 31% on its top edge, the 7-day limit at 64% on its bottom edge, and the context at 33%" width="100%">
 
 One rounded frame sits inside the app's own block and is always there.
 
@@ -20,7 +20,7 @@ One rounded frame sits inside the app's own block and is always there.
 
 The last known limits are kept between sessions, so a new session shows them at once.
 
-<img src="docs/images/frame-idle.svg" alt="The band at rest: only the two limit edges and the context weather" width="100%">
+<img src="docs/images/window-idle.svg" alt="The same window at rest: the band keeps only the two limit edges and the context weather" width="100%">
 
 ## Replies
 

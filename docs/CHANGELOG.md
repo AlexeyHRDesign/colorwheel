@@ -4,7 +4,7 @@
 
 ### Added
 
-- A README with images drawn by the mod's own code (`scripts/readme-images.ts`), a logo and a social preview.
+- A README with images drawn by the mod's own code (`scripts/readme-images.ts`): the band shown in a fragment of the desktop app, between the chat and the prompt. A logo and a social preview.
 
 ### Changed
 

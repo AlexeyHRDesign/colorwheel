@@ -3,18 +3,18 @@
 <!-- GitHub social preview, 1280x640. Rendered with: chrome --headless --screenshot --window-size=1280,640 -->
 <style>
   html, body { margin: 0; width: 1280px; height: 640px; overflow: hidden; }
-  body { background: #1f1e1d; color: #ece9e3; color-scheme: dark; font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif; display: grid; align-content: center; gap: 56px; padding: 0 80px; box-sizing: border-box; }
-  .head { display: flex; align-items: center; gap: 28px; }
-  .head img { width: 112px; height: 112px; }
-  h1 { font-size: 88px; line-height: 1; letter-spacing: -0.03em; margin: 0; font-weight: 700; }
-  p { font-size: 30px; line-height: 1.35; margin: 22px 0 0; color: #aaa59e; max-width: 900px; }
+  body { background: #1f1e1d; color: #ece9e3; color-scheme: dark; font-family: ui-sans-serif, system-ui, "Segoe UI", sans-serif; display: grid; grid-template-columns: 400px 1fr; align-items: center; gap: 48px; padding: 0 56px; box-sizing: border-box; }
+  .head { display: grid; gap: 20px; }
+  .head img { width: 120px; height: 120px; }
+  h1 { font-size: 64px; line-height: 1; letter-spacing: -0.03em; margin: 0; font-weight: 700; }
+  p { font-size: 26px; line-height: 1.35; margin: 22px 0 0; color: #aaa59e; max-width: 900px; }
   .shots { display: grid; gap: 16px; }
-  .shots img { display: block; width: 1120px; }
+  .shots img { display: block; width: 720px; }
 </style>
 <body>
   <div>
     <div class="head"><img src="../docs/images/logo.svg" alt=""><h1>ColorWheel</h1></div>
     <p>Themed replies, full-width diagrams, and your context and limits at a glance, in Claude Code Desktop.</p>
   </div>
-  <div class="shots"><img src="../docs/images/frame-tasks.svg" alt=""><img src="../docs/images/frame-idle.svg" alt=""></div>
+  <div class="shots"><img src="../docs/images/window-tasks.svg" alt=""></div>
 </body>
