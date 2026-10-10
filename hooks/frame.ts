@@ -3,7 +3,7 @@ import type { Summary } from './progress'
 import type { Pill } from './weather'
 
 // The desktop band: one rounded frame inside the app's own block. Its top half is the
-// 5-hour limit, its bottom half the 7-day limit; each is full while the budget is untouched
+// 5-hour limit, its bottom half the 7-day limit; each is empty while the budget is untouched
 // and grows from the left as it is used. Tasks fill the inside from the left.
 
 const R = 11
