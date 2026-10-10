@@ -4,7 +4,7 @@ import type { Pill } from './weather'
 
 // The desktop band: one rounded frame inside the app's own block. Its top half is the
 // 5-hour limit, its bottom half the 7-day limit; each is full while the budget is untouched
-// and wipes away from the right as it is used. Tasks fill the inside from the left.
+// and grows from the left as it is used. Tasks fill the inside from the left.
 
 const R = 11
 const PAD = 16
@@ -87,7 +87,7 @@ export const frame = (s: Summary | null, list: readonly Pill[]): { svg: string; 
     body.push(`<g class="t${s!.isFinished ? 1 : 0}" mask="url(#tasks)">${rect('wash', EDGE_INSET + 1.5, h)}</g>`)
   }
 
-  // The frame: top half the 5-hour limit, bottom half the 7-day, each wiped from the right by the share used.
+  // The frame: top half the 5-hour limit, bottom half the 7-day, each drawn from the left as far as the share used.
   // Its percent sits on the edge itself, just past where the colour ends, in a gap cut out of the line;
   // near the right corner it flips to sit before the end.
   const edges: string[] = [rect('track', EDGE_INSET, h)]
@@ -96,7 +96,7 @@ export const frame = (s: Summary | null, list: readonly Pill[]): { svg: string; 
   for (const [tag, y] of [['5h', 0], ['7d', mid]] as const) {
     const p = list.find(x => x.tag === tag)
     if (!p) continue
-    const left = Math.max(0, Math.min(100, 100 - p.percent)) / 100
+    const left = Math.max(0, Math.min(100, p.percent)) / 100
     if (left > 0) {
       defs.push(share(`e${tag}`, left, y, mid))
       edges.push(`<g class="t${ringOf(p)}" mask="url(#e${tag})">${rect('ring', EDGE_INSET, h)}</g>`)

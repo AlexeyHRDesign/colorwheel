@@ -62,7 +62,7 @@ test('after a turn the band shows the icon and percent, with the details in the 
   expect(await texts($, 'terminal')).toContain('9%')
 })
 
-test('the 5-hour limit takes the top edge and the 7-day the bottom, wiped by what is used', async ($, on) => {
+test('the 5-hour limit takes the top edge and the 7-day the bottom, each as long as the share used', async ($, on) => {
   stub(on)
   on('session.usage', () => ({ value: { ...usage(92_900), rateLimits: [{ kind: 'five_hour', percentUsed: 34 }, { kind: 'seven_day', percentUsed: 12.5 }] } }) as never)
   await $.turn.complete(TURN as never).catch(() => undefined)

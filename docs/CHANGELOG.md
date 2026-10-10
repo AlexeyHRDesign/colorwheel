@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.8] - 2026-10-09
+
+### Changed
+
+- Each limit's edge is as long as the share used, growing from the left, so 90% reads as a long line and matches its percent.
+
 ## [0.3.7] - 2026-10-09
 
 ### Changed
