@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.7] - 2026-10-09
+
+### Changed
+
+- The frame sits half as far inside the app's block: the band pulls it one cell out past the app's padding and gives 6 px back on the sides.
+
+### Fixed
+
+- `/colorwheel progress` with words after it played nothing; the command reads only its first word.
+
 ## [0.3.6] - 2026-10-09
 
 ### Fixed

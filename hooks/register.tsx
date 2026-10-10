@@ -24,7 +24,9 @@ const view = atom({ plugin: 'colorwheel', key: 'view' } as const, null as Diagra
 const progress = atom({ plugin: 'colorwheel', key: 'progress' } as const, EMPTY)
 const weather = atom({ plugin: 'colorwheel', key: 'weather' } as const, QUIET)
 const SETTLE_MS = 6000
-const BAND_MARGIN = 40
+// One cell of the app's padding on each side is reclaimed by the band's negative margin.
+const CELL_PX = 12
+const BAND_MARGIN = 40 - 2 * CELL_PX
 const LIMITS_KEY = 'limits'
 const DEMO_STEPS = ['Read the layout code', 'Write the failing test', 'Move the elbow logic', 'Run the suite']
 const ZOOMS = [1, 1.5, 2, 3, 4, 6]
@@ -129,7 +131,7 @@ export const register: Register = (on, options) => {
   })
 
   on('command.run', { command: 'colorwheel' }, async ($, e) => {
-    if (e.args.trim() !== 'progress') return { text: DEMO }
+    if (e.args.trim().split(/\s+/)[0] !== 'progress') return { text: DEMO }
     const todo = (done: number, active: string): Todo[] =>
       DEMO_STEPS.map((content, i) => ({ content, status: i < done ? 'completed' : i === done ? 'in_progress' : 'pending', ...(i === done ? { activeForm: active } : {}) }))
     const steps: [number, (p: Progress) => Progress][] = [
@@ -207,7 +209,7 @@ export const register: Register = (on, options) => {
       // `below` may be the engine's own node, which the app refuses under a Box that sets width.
       return (
         <el.Box flexDirection="column">
-          <el.Box width="100%">
+          <el.Box marginLeft={-1} marginRight={-1} marginTop={-1} marginBottom={-1}>
             <el.Svg source={f.svg} alt={f.alt} width={width} height={f.height} isInteractive />
           </el.Box>
           {below ?? null}

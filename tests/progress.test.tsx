@@ -88,3 +88,9 @@ test('/colorwheel progress plays a demo that ends in All done and then hides', a
   await clock.advance(7000)
   expect(await look()).not.toContain('All done')
 })
+
+test('/colorwheel progress plays the demo even with words after it', async ($, on) => {
+  mock.clock(on)
+  const reply = await $.command.run({ command: 'colorwheel', args: 'progress and a note' } as never)
+  expect(JSON.stringify(reply)).toContain('Progress demo')
+})

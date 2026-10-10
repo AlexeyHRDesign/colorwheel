@@ -12,6 +12,8 @@ const CHAR = 6.6
 const METRIC_GAP = 16
 const BASE_HEIGHT = 36
 const EDGE_INSET = 5
+// The band pulls the Svg one cell out past the app's padding; this much of it comes back on the sides.
+const SIDE_INSET = 6
 const TAG_CHAR = 5.5
 const TAG_PAD = 3
 const TAG_FONT = 9.5
@@ -58,8 +60,10 @@ const spans = (s: Summary): Span[] => {
 export const ratioOf = (s: Summary) => (s.tasksTotal ? s.tasksDone / s.tasksTotal : s.agentsTotal ? s.agentsDone / s.agentsTotal : 0)
 
 // Widths are CSS calc() against the frame's own width, so the drawing fits whatever slot the band gives it.
-const rect = (cls: string, inset: number, h: number) =>
-  `<rect class="${cls}" x="${inset}" y="${inset}" style="width:calc(100% - ${2 * inset}px)" height="${(h - 2 * inset).toFixed(1)}" rx="${Math.max(3, R - inset + 1).toFixed(1)}"/>`
+const rect = (cls: string, inset: number, h: number) => {
+  const x = inset - EDGE_INSET + SIDE_INSET
+  return `<rect class="${cls}" x="${x}" y="${inset}" style="width:calc(100% - ${2 * x}px)" height="${(h - 2 * inset).toFixed(1)}" rx="${Math.max(3, R - inset + 1).toFixed(1)}"/>`
+}
 // A mask that keeps the left `ratio` of the frame and lets the cut end fade out softly.
 const FADE = 6
 const share = (id: string, ratio: number, y: number, h: number) => {
@@ -72,7 +76,7 @@ const share = (id: string, ratio: number, y: number, h: number) => {
 export const frame = (s: Summary | null, list: readonly Pill[]): { svg: string; alt: string; height: number } => {
   const h = BASE_HEIGHT
   const mid = h / 2
-  const inner = EDGE_INSET
+  const inner = SIDE_INSET
   const defs: string[] = []
   const body: string[] = []
   const hasProgress = !!s && (s.isActive || s.isFinished)
