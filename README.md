@@ -16,7 +16,8 @@ ColorWheel is a [Claude Code](https://docs.anthropic.com/en/docs/claude-code) mo
 
 One rounded frame sits inside the app's own block and is always there.
 
-- **The top edge is the 5-hour limit, the bottom edge the 7-day limit.** Each line grows from the left as the limit is used, and its percent rides on the edge where the colour ends. Hover an edge for the time to reset.
+- **The top edge is the 5-hour limit, the bottom edge the 7-day limit.** Each line grows from the left as the limit is used, and its percent rides on the edge where the colour ends. A small tick on each edge marks pace: where the line would end if the limit were spent evenly across its window, so colour past the tick means you are ahead of pace. Hover an edge for the time to reset.
+- **⇆ left of the weather icon flips the band to what is left.** The edges then shrink as limits are used, and the percents read as the share left. The choice is kept between sessions.
 - **The context window is the weather on the right.** Clear, cloudy, showers, storm, then *compact soon*, with the percent used. Hover it for tokens, the last twelve turns and the trend.
 - **Subagents and tasks fill the inside.** While they run, the frame shows how many agents are running and done, tasks done over total and the item in progress, and a wash grows from the left. When everything is finished it says *All done* for a few seconds.
 
@@ -60,6 +61,7 @@ ColorWheel draws the whole band above the prompt. Another mod that draws there w
 |---|---|
 | `/colorwheel` | Shows every element ColorWheel draws. |
 | `/colorwheel progress` | Plays a 20-second demo of agents and tasks in the band. |
+| `/colorwheel invert` | Switches the band between the share used and the share left, like the ⇆ button. |
 
 Two settings, under the plugin's options:
 

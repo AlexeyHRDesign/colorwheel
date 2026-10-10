@@ -33,11 +33,12 @@ const css =
   `.track{fill:none;stroke:${LIGHT.line};stroke-opacity:.28;stroke-width:1.5}` +
   `.ring{fill:none;stroke:currentColor;stroke-width:2}` +
   `.wash{fill:currentColor;fill-opacity:.1}` +
+  `.pace{fill:${LIGHT.fg};fill-opacity:.55}` +
   `.edge-tag{font-size:${TAG_FONT}px;font-weight:600;fill:currentColor}` +
   `.icon{fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}` +
   `.fg{fill:${LIGHT.fg}}.muted{fill:${LIGHT.muted}}.bold{font-weight:650}.tone{fill:currentColor}` +
   `.hit{fill:transparent}.metric:hover .hit{fill:${LIGHT.line};fill-opacity:.14}${tones(LIGHT.wheel)}` +
-  `@media (prefers-color-scheme:dark){.track{stroke:${DARK.line}}.fg{fill:${DARK.fg}}.muted{fill:${DARK.muted}}` +
+  `@media (prefers-color-scheme:dark){.track{stroke:${DARK.line}}.pace{fill:${DARK.fg}}.fg{fill:${DARK.fg}}.muted{fill:${DARK.muted}}` +
   `.wash{fill-opacity:.16}.metric:hover .hit{fill:${DARK.line}}${tones(DARK.wheel)}}`
 
 type Span = { text: string; cls: string; tone?: number }
@@ -67,6 +68,8 @@ const rect = (cls: string, inset: number, h: number) => {
 }
 // A mask that keeps the left `ratio` of the frame and lets the cut end fade out softly.
 const FADE = 6
+// Percent of the width a label takes past the edge's end, roughly; a pace tick in it moves the label.
+const PACE_ROOM = 9
 const share = (id: string, ratio: number, y: number, h: number) => {
   const end = ratio * 100
   const start = Math.max(0, end - FADE)
@@ -74,7 +77,12 @@ const share = (id: string, ratio: number, y: number, h: number) => {
     `<mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="${y}" width="100%" height="${h}"><rect x="0" y="${y}" width="100%" height="${h}" fill="url(#${id}g)"/></mask>`
 }
 
-export const frame = (s: Summary | null, list: readonly Pill[]): { svg: string; alt: string; height: number } => {
+// `left` labels the edges as the share left; `slot` keeps that many px free left of the metrics,
+// where the caller lays a control over the drawing. `slotRight` is that gap's right end, in px from the right.
+export type FrameOptions = { left?: boolean; slot?: number }
+
+export const frame = (s: Summary | null, list: readonly Pill[], opts: FrameOptions = {}): { svg: string; alt: string; height: number; slotRight: number } => {
+  const slot = opts.slot ?? 0
   const h = BASE_HEIGHT
   const mid = h / 2
   const inner = SIDE_INSET
@@ -102,8 +110,10 @@ export const frame = (s: Summary | null, list: readonly Pill[]): { svg: string; 
       defs.push(share(`e${tag}`, left, y, mid))
       edges.push(`<g class="t${ringOf(p)}" mask="url(#e${tag})">${rect('ring', EDGE_INSET, h)}</g>`)
     }
-    const label = `${tag} ${p.percent}%`
-    const flip = left > 0.85
+    const label = `${tag} ${p.percent}%${opts.left ? ' left' : ''}`
+    // The label also steps to the other side of the edge's end when the pace tick sits there.
+    const near = (from: number, to: number) => p.pace !== undefined && p.pace - p.percent >= from && p.pace - p.percent <= to
+    const flip = left > 0.85 ? !near(-PACE_ROOM, 0) : near(0, PACE_ROOM)
     const at = `${(left * 100).toFixed(2)}%`
     const ty = y === 0 ? EDGE_INSET : h - EDGE_INSET
     const width = label.length * TAG_CHAR + 2 * TAG_PAD
@@ -115,6 +125,11 @@ export const frame = (s: Summary | null, list: readonly Pill[]): { svg: string; 
     tags.push(
       `<g class="t${ringOf(p)}"><title>${esc(p.tip.join('\n'))}</title><text class="edge-tag" x="${at}" dx="${flip ? -(4 + TAG_PAD) : 4 + TAG_PAD}" y="${ty}" text-anchor="${flip ? 'end' : 'start'}">${esc(label)}</text></g>`,
     )
+    // Pace: where the edge would end if the budget were spent evenly across its window.
+    if (p.pace !== undefined) {
+      const px = Math.max(0, Math.min(100, p.pace))
+      tags.push(`<rect class="pace" y="${ty - 4}" height="8" rx="1" style="x:calc(${px.toFixed(2)}% - 1px);width:2px"><title>${esc(p.tip.join('\n'))}</title></rect>`)
+    }
   }
   defs.push(`<mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="${h}"><rect x="0" y="0" width="100%" height="${h}" fill="#fff"/>${cuts.join('')}</mask>`)
   body.push(`<g mask="url(#cut)">${edges.join('')}</g>`, ...tags)
@@ -130,7 +145,7 @@ export const frame = (s: Summary | null, list: readonly Pill[]): { svg: string; 
     const x = right - mw
     const icon = p.icon ? `<g class="icon t${ring}" transform="translate(${x.toFixed(1)} ${mid - 7})">${p.icon}</g>` : ''
     const tag = p.tag ? `<text class="tone t${ring}" x="${x.toFixed(1)}" y="${mid}">${esc(p.tag)}</text>` : ''
-    const valueTone = p.percent >= 80 ? ` class="tone t4 bold"` : ` class="fg"`
+    const valueTone = p.used >= 80 ? ` class="tone t4 bold"` : ` class="fg"`
     metrics.push(
       `<g class="metric"><title>${esc(p.tip.join('\n'))}</title>` +
         `<rect class="hit" x="${(x - 6).toFixed(1)}" y="${inner + 2}" width="${(mw + 12).toFixed(1)}" height="${(h - 2 * inner - 4).toFixed(1)}" rx="5"/>` +
@@ -138,12 +153,13 @@ export const frame = (s: Summary | null, list: readonly Pill[]): { svg: string; 
     )
     right = x - METRIC_GAP
   }
-  const metricsWidth = -right - METRIC_GAP
+  const metricsWidth = Math.max(0, -right - METRIC_GAP)
+  const slotRight = inner + PAD + metricsWidth + (metricsWidth ? METRIC_GAP : 0)
   body.push(`<svg x="100%" y="0" overflow="visible"><g transform="translate(${-(inner + PAD)} 0)">${metrics.join('')}</g></svg>`)
 
   // Progress text on the left; where it would run into the metrics it fades out rather than cutting a word.
   if (hasProgress) {
-    const reserve = 2 * (inner + PAD) + Math.max(0, metricsWidth) + METRIC_GAP
+    const reserve = 2 * (inner + PAD) + metricsWidth + METRIC_GAP + slot
     const solid = `calc(100% - ${(reserve + TEXT_FADE).toFixed(0)}px)`
     defs.push(
       `<linearGradient id="textg"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>` +
@@ -162,5 +178,5 @@ export const frame = (s: Summary | null, list: readonly Pill[]): { svg: string; 
     ...list.map(p => p.tip[0]!),
   ].join('; ')
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="${h}"><style>${css}</style><defs>${defs.join('')}</defs>${body.join('')}</svg>`
-  return { svg, alt, height: h }
+  return { svg, alt, height: h, slotRight }
 }

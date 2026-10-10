@@ -49,9 +49,10 @@ const chart = (readings: readonly Reading[]) => {
   return readings.map(r => BARS[Math.min(BARS.length - 1, Math.floor((r.tokens / top) * (BARS.length - 1)))]).join('')
 }
 
-const WINDOWS: Record<string, { tag: string; name: string }> = {
-  five_hour: { tag: '5h', name: '5-hour limit' },
-  seven_day: { tag: '7d', name: '7-day limit' },
+const HOUR = 3_600_000
+const WINDOWS: Record<string, { tag: string; name: string; ms?: number }> = {
+  five_hour: { tag: '5h', name: '5-hour limit', ms: 5 * HOUR },
+  seven_day: { tag: '7d', name: '7-day limit', ms: 7 * 24 * HOUR },
   spend_limit: { tag: '$', name: 'Spend limit' },
 }
 
@@ -67,16 +68,32 @@ export const resetsIn = (resetsAt: string | undefined, now: number): string => {
   return `resets in ${d ? `${d}d ${h}h` : h ? `${h}h ${m}m` : `${m}m`}`
 }
 
-export type Pill = { tag: string; percent: number; tone: number; icon?: string; glyph?: string; tip: string[] }
+// The share of a limit's window already gone: spending at this share is spending at pace.
+export const elapsed = (resetsAt: string | undefined, ms: number | undefined, now: number): number | undefined => {
+  const at = resetsAt ? Date.parse(resetsAt) : NaN
+  if (!ms || Number.isNaN(at)) return undefined
+  return Math.round(Math.max(0, Math.min(100, 100 - ((at - now) / ms) * 100)))
+}
 
-export const pills = (w: Weather, now: number): Pill[] => {
+const paceLine = (gone: number, used: number) => {
+  const d = used - gone
+  return `${gone}% of the window gone, ${d === 0 ? 'on pace' : `${Math.abs(d)} points ${d > 0 ? 'over' : 'under'} pace`}`
+}
+
+// `percent` is what the band shows: the share used, or with `left` the share left.
+// `used` is always the share used, for tones; `pace` sits on the same scale as `percent`.
+export type Pill = { tag: string; percent: number; used: number; pace?: number; tone: number; icon?: string; glyph?: string; tip: string[] }
+
+export const pills = (w: Weather, now: number, left = false): Pill[] => {
+  const shown = (used: number) => (left ? Math.max(0, 100 - used) : used)
   const out: Pill[] = []
   const r = w.readings.at(-1)
   if (r) {
     const f = forecastFor(r.percent)
     out.push({
       tag: '',
-      percent: r.percent,
+      percent: shown(r.percent),
+      used: r.percent,
       tone: f.tone,
       icon: f.icon,
       glyph: f.glyph,
@@ -92,19 +109,31 @@ export const pills = (w: Weather, now: number): Pill[] => {
     const known = WINDOWS[l.kind] ?? { tag: l.kind, name: l.kind }
     const percent = Math.round(l.percentUsed)
     const reset = resetsIn(l.resetsAt, now)
-    out.push({ tag: known.tag, percent, tone: limitTone(percent), tip: [`${known.name} · ${percent}% used, ${Math.max(0, 100 - percent)}% left`, ...(reset ? [reset] : [])] })
+    const gone = elapsed(l.resetsAt, known.ms, now)
+    out.push({
+      tag: known.tag,
+      percent: shown(percent),
+      used: percent,
+      ...(gone === undefined ? {} : { pace: shown(gone) }),
+      tone: limitTone(percent),
+      tip: [`${known.name} · ${percent}% used, ${Math.max(0, 100 - percent)}% left`, ...(gone === undefined ? [] : [paceLine(gone, percent)]), ...(reset ? [reset] : [])],
+    })
   }
   return out
 }
 
 const TERMINAL_TONES = ['blue', 'cyan', 'yellow', 'magenta', 'red', 'green']
 
-export const drawWeather = (el: ElementTable, w: Weather, now: number): RenderElement | null => {
-  const list = pills(w, now)
+export const INVERT_KEY = 'invert'
+export const INVERT_GLYPH = '⇆'
+
+export const drawWeather = (el: ElementTable, w: Weather, now: number, left: boolean, toggle: () => void): RenderElement | null => {
+  const list = pills(w, now, left)
   if (!list.length) return null
-  const { Box, Text } = el
+  const { Box, Text, Button } = el
   return (
     <Box key="weather" flexShrink={0} columnGap={2} flexDirection="row">
+      <Button key={INVERT_KEY} label={INVERT_GLYPH} plain dimColor onPress={toggle} />
       {list.map((p, i) => (
         <Text key={`w${i}`}>
           <Text color={TERMINAL_TONES[p.tone]}>{p.glyph ?? p.tag}</Text>

@@ -10,7 +10,7 @@ import { PX_PER_COLUMN, crop, diagram, fit } from './diagram'
 import { ALERTS, alertColor } from './palette'
 import { frame } from './frame'
 import { EMPTY, agentQueued, agentStarted, agentStopped, drawBand, summarize, taskCompleted, taskCreated, todosWritten } from './progress'
-import { QUIET, addReading, drawWeather, pills } from './weather'
+import { INVERT_GLYPH, INVERT_KEY, QUIET, addReading, drawWeather, pills } from './weather'
 
 const HINT = [
   'Replies are drawn by the ColorWheel mod in the Claude Code desktop app.',
@@ -23,6 +23,7 @@ const VIEW = 'colorwheel-view'
 const view = atom({ plugin: 'colorwheel', key: 'view' } as const, null as DiagramView | null)
 const progress = atom({ plugin: 'colorwheel', key: 'progress' } as const, EMPTY)
 const weather = atom({ plugin: 'colorwheel', key: 'weather' } as const, QUIET)
+const inverted = atom({ plugin: 'colorwheel', key: 'inverted' } as const, false)
 const SETTLE_MS = 6000
 // One cell of the app's padding on each side is reclaimed by the band's negative margin.
 const CELL_PX = 12
@@ -31,6 +32,8 @@ const LIMITS_KEY = 'limits'
 const DEMO_STEPS = ['Read the layout code', 'Write the failing test', 'Move the elbow logic', 'Run the suite']
 const ZOOMS = [1, 1.5, 2, 3, 4, 6]
 const PAN = 0.15
+// Room kept free in the frame for the invert button, left of the weather icon.
+const SLOT_PX = 2 * PX_PER_COLUMN + 8
 
 type Elements = ReturnType<EngineInterface['ui']['resolve']>
 
@@ -110,6 +113,11 @@ const takeReading = async ($: EngineInterface) => {
   if (limits.length) await $.store.set(LIMITS_KEY, limits)
 }
 
+const toggleInvert = async ($: EngineInterface) => {
+  await update($, inverted, v => !v)
+  await $.store.set(INVERT_KEY, await read($, inverted))
+}
+
 // The limits are the account's, not the session's: the last known ones show at once in a new session.
 const restoreLimits = async ($: EngineInterface) => {
   const saved = await $.store.get(LIMITS_KEY)
@@ -128,13 +136,19 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     const started = await next(e)
     await restoreLimits($).catch(() => undefined)
+    if ((await $.store.get(INVERT_KEY).catch(() => undefined)) === true) await update($, inverted, () => true)
     await takeReading($).catch(() => undefined)
-    await $.command.register({ name: 'colorwheel', description: 'Show what ColorWheel draws; progress plays a demo of the progress row', argumentHint: '[progress]' }).catch(() => undefined)
+    await $.command.register({ name: 'colorwheel', description: 'Show what ColorWheel draws; progress plays a demo of the progress row; invert switches limits between used and left', argumentHint: '[progress|invert]' }).catch(() => undefined)
     return started
   })
 
   on('command.run', { command: 'colorwheel' }, async ($, e) => {
-    if (e.args.trim().split(/\s+/)[0] !== 'progress') return { text: DEMO }
+    const arg = e.args.trim().split(/\s+/)[0]
+    if (arg === 'invert') {
+      await toggleInvert($)
+      return { text: (await read($, inverted)) ? 'ColorWheel now shows what is left.' : 'ColorWheel now shows what is used.' }
+    }
+    if (arg !== 'progress') return { text: DEMO }
     const todo = (done: number, active: string): Todo[] =>
       DEMO_STEPS.map((content, i) => ({ content, status: i < done ? 'completed' : i === done ? 'in_progress' : 'pending', ...(i === done ? { activeForm: active } : {}) }))
     const steps: [number, (p: Progress) => Progress][] = [
@@ -195,7 +209,9 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey) return next(e)
     const s = summarize(await read($, progress))
-    const metrics = pills(await read($, weather), await $.clock.now())
+    const left = await read($, inverted)
+    const metrics = pills(await read($, weather), await $.clock.now(), left)
+    const toggle = () => void toggleInvert($)
     const hasProgress = s.isActive || s.isFinished
     const el = $.ui.resolve(e)
     const desktop = e.surface !== 'terminal' && 'Svg' in el
@@ -205,15 +221,19 @@ export const register: Register = (on, options) => {
     const below = await next(e).catch(() => null)
     const columns = e.props.bodyColumns ?? e.viewport?.columns ?? 100
     if (desktop) {
-      const f = frame(hasProgress ? s : null, metrics)
+      const f = frame(hasProgress ? s : null, metrics, { left, slot: SLOT_PX })
       // The Svg needs a width in px: the frame's markup stretches to whatever it gets, so
       // a width a little under the transcript column is safe.
       const width = Math.max(320, Math.round((e.viewport?.columns ?? 100) * PX_PER_COLUMN) - BAND_MARGIN)
       // `below` may be the engine's own node, which the app refuses under a Box that sets width.
       return (
         <el.Box flexDirection="column">
-          <el.Box marginLeft={-1} marginRight={-1} marginTop={-1} marginBottom={-1}>
+          <el.Box key="cw-band" position="relative" marginLeft={-1} marginRight={-1} marginTop={-1} marginBottom={-1}>
             <el.Svg source={f.svg} alt={f.alt} width={width} height={f.height} isInteractive />
+            {/* The Svg takes no presses, so the invert button lies over the gap the frame keeps for it. */}
+            <el.Box position="absolute" top={0} left={Math.max(0, Math.round((width - f.slotRight - SLOT_PX) / PX_PER_COLUMN))}>
+              <el.Button key={INVERT_KEY} label={INVERT_GLYPH} plain dimColor onPress={toggle} />
+            </el.Box>
           </el.Box>
           {below ?? null}
         </el.Box>
@@ -223,7 +243,7 @@ export const register: Register = (on, options) => {
       <el.Box flexDirection="column">
         <el.Box flexDirection="row" width="100%" columnGap={3}>
           <el.Box flexGrow={1} flexShrink={1}>{hasProgress ? drawBand(el, s, e.surface, columns) : null}</el.Box>
-          {drawWeather(el, await read($, weather), await $.clock.now())}
+          {drawWeather(el, await read($, weather), await $.clock.now(), left, toggle)}
         </el.Box>
         {below ?? null}
       </el.Box>

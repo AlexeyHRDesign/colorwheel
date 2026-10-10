@@ -1,7 +1,7 @@
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
-import { addReading, forecastFor, short, trend } from '../hooks/weather'
+import { addReading, forecastFor, pills, short, trend } from '../hooks/weather'
 
 const usage = (tokens: number, window = 1_000_000) => ({ startedAt: 0, context: { tokens, window, percent: Math.round((tokens / window) * 100) }, rateLimits: [] })
 
@@ -34,12 +34,13 @@ const band = (surface: 'terminal' | 'desktop') => ({ plugin: 'colorwheel', compo
 const TURN = { answer: 'ok', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' }
 
 const stub = (on: On) => {
-  mock.clock(on)
+  const clock = mock.clock(on)
   on('ui.render', ($, e) => {
     const { Text } = $.ui.resolve(e)
     return <Text>below</Text>
   })
   on('turn.complete', () => ({ text: '' }))
+  return clock
 }
 
 type Mounts = { ui: { mount: (e: never) => Promise<{ findAll: (q: { type: string }) => Promise<{ text?: string }[]>; unmount: () => Promise<void> }> } }
@@ -107,4 +108,50 @@ test('a saved limit whose window has reset comes back empty, not missing', async
   const desktop = await texts($, 'desktop')
   expect(desktop).toContain('5h 0%')
   expect(desktop).toContain('7d 40%')
+})
+
+const HOUR = 3_600_000
+const DAY = 24 * HOUR
+
+test('each limit edge carries a pace tick at the share of its window already gone', async ($, on) => {
+  const clock = stub(on)
+  const at = (ms: number) => new Date(clock.now() + ms).toISOString()
+  on('session.usage', () => ({ value: { ...usage(92_900), rateLimits: [{ kind: 'five_hour', percentUsed: 34, resetsAt: at(4 * HOUR) }, { kind: 'seven_day', percentUsed: 64, resetsAt: at(3.5 * DAY) }] } }) as never)
+  await $.turn.complete(TURN as never).catch(() => undefined)
+  const desktop = await texts($, 'desktop')
+  expect(desktop).toContain('20% of the window gone, 14 points over pace')
+  expect(desktop).toContain('50% of the window gone, 14 points over pace')
+  expect(desktop).toMatch(/class=\\"pace\\"/)
+})
+
+test('pills read the share left when inverted, and pace counts down with it', async () => {
+  const now = Date.parse('2026-10-10T00:00:00Z')
+  const w = { readings: [{ tokens: 300, window: 1000, percent: 30 }], limits: [{ kind: 'seven_day', percentUsed: 64, resetsAt: new Date(now + 3.5 * DAY).toISOString() }] }
+  const [context, week] = pills(w, now, true)
+  expect(context).toMatchObject({ percent: 70, used: 30 })
+  expect(week).toMatchObject({ percent: 36, used: 64, pace: 50 })
+  expect(pills(w, now)[1]).toMatchObject({ percent: 64, pace: 50 })
+})
+
+test('the invert button flips the band to the share left and the choice is kept', async ($, on) => {
+  stub(on)
+  mock.store(on, {})
+  on('session.usage', () => ({ value: { ...usage(92_900), rateLimits: [{ kind: 'five_hour', percentUsed: 34 }] } }) as never)
+  await $.turn.complete(TURN as never).catch(() => undefined)
+  const ui = await $.ui.mount(band('desktop') as never)
+  await ui.press({ key: 'invert' })
+  await ui.unmount()
+  const desktop = await texts($, 'desktop')
+  expect(desktop).toContain('5h 66% left')
+  expect(desktop).toContain('91%')
+  expect(await texts($, 'terminal')).toContain(' 66%')
+})
+
+test('an inverted band stays inverted in the next session', async ($, on) => {
+  stub(on)
+  on('session.start', () => ({ cwd: '.' }))
+  mock.store(on, { invert: true, limits: [{ kind: 'seven_day', percentUsed: 40, resetsAt: '2999-01-01T00:00:00Z' }] })
+  on('session.usage', () => ({ value: usage(0) }) as never)
+  await $.session.start({ cwd: '.' } as never).catch(() => undefined)
+  expect(await texts($, 'desktop')).toContain('7d 60% left')
 })

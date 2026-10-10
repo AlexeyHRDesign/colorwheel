@@ -10,6 +10,6 @@ export type Progress = { agents: TrackedAgent[]; queued: { type: string; label: 
 
 declare module 'claude-code' {
   interface PluginState {
-    colorwheel: { view: DiagramView | null; progress: Progress; weather: Weather }
+    colorwheel: { view: DiagramView | null; progress: Progress; weather: Weather; inverted: boolean }
   }
 }
