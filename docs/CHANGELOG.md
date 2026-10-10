@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.2] - 2026-10-10
+
+### Added
+
+- A pace tick on each limit edge: where the line would end if the limit were spent evenly across its window. Colour past the tick means usage is ahead of pace, and the tooltip says by how many points.
+- An inverted mode that shows the share left instead of the share used, so the edges shrink as limits are spent. Switch it with the ⇆ button left of the weather icon or with `/colorwheel invert`. The choice is kept between sessions.
+
+### Changed
+
+- The README demo grows the limits through the turn, as they do in the app, instead of easing them down.
+
 ## [0.4.1] - 2026-10-09
 
 ### Fixed
