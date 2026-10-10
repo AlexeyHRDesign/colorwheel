@@ -4,6 +4,8 @@
 
 <p align="center">Themed replies, full-width diagrams, and your context and limits at a glance, in Claude Code Desktop.</p>
 
+<p align="center"><img src="docs/images/band-demo.gif" alt="The band above the prompt filling in as two subagents and a four-item task list run, ending in All done 4/4" width="100%"></p>
+
 ---
 
 ColorWheel is a [Claude Code](https://docs.anthropic.com/en/docs/claude-code) mod. It changes two places in the desktop app: how assistant replies are drawn, and the band above the prompt.
@@ -74,6 +76,7 @@ npm --prefix scripts run build:vendor
 claude plugin validate .
 claude plugin test .
 npx tsx scripts/readme-images.ts
+npx tsx scripts/readme-gif.ts
 ```
 
 The engine refuses modules over 1 MiB, so the vendor build bundles only beautiful-mermaid's elk-free pipelines and fails if the bundle grows past that. Flowcharts are laid out by `hooks/layout.ts`. The README images are drawn by the mod's own code, so they match what it draws.
@@ -87,7 +90,9 @@ ColorWheel grew out of two mods:
 
 ## Credits
 
-Made by [Aleksei Druzhkov](https://github.com/AlexeyHRDesign).
+Made by Aleksei Druzhkov.
+
+[ArtStation](https://www.artstation.com/hrdesign) · [LinkedIn](https://www.linkedin.com/in/alexey-druzhkov-8430a6183/) · [GitHub](https://github.com/AlexeyHRDesign)
 
 ## License
 
