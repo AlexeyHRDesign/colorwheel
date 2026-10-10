@@ -75,7 +75,10 @@ The engine refuses modules over 1 MiB, so the vendor build bundles only beautifu
 
 ## Thanks
 
-ColorWheel was inspired by [prismantis](https://github.com/NahumLitvin/prismantis) by [Nahum Litvin](https://github.com/NahumLitvin), which showed how far a Claude Code mod can take the look of a reply.
+ColorWheel grew out of two mods:
+
+- [prismantis](https://github.com/NahumLitvin/prismantis) by [Nahum Litvin](https://github.com/NahumLitvin), which showed how far a Claude Code mod can take the look of a reply.
+- [Token Weather](https://github.com/anthropics/claude-code-playground/tree/main/claude-code/mods/token-weather) by [addy-ant](https://github.com/addy-ant), from the Claude Code playground, which first turned the context window into a forecast above the prompt. ColorWheel's weather and its band started from it.
 
 ## License
 
