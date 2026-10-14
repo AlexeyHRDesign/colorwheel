@@ -144,7 +144,10 @@ export const frame = (s: Summary | null, list: readonly Pill[], opts: FrameOptio
     // Pace: a dot in the edge's colour where the edge would end if the budget were spent evenly.
     if (p.pace !== undefined) {
       const px = Math.max(0, Math.min(100, p.pace))
-      tags.push(`<circle class="pace-dot t${ringOf(p)}" cy="${ty}" r="${DOT_R}" style="cx:clamp(${R + SIDE_INSET}px, ${px.toFixed(2)}%, calc(100% - ${R + SIDE_INSET}px))"><title>${esc(p.tip.join('\n'))}</title></circle>`)
+      // The dot's own tooltip says what it marks; a wider invisible ring makes the small dot easy to hover.
+      const cx = `cx:clamp(${R + SIDE_INSET}px, ${px.toFixed(2)}%, calc(100% - ${R + SIDE_INSET}px))`
+      const tip = `<title>${esc((p.paceTip ?? p.tip).join('\n'))}</title>`
+      tags.push(`<circle class="pace-dot t${ringOf(p)}" cy="${ty}" r="${DOT_R}" style="${cx}">${tip}</circle><circle class="hit" cy="${ty}" r="${DOT_R + 4}" style="${cx}">${tip}</circle>`)
     }
   }
   defs.push(`<mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="${h}"><rect x="0" y="0" width="100%" height="${h}" fill="#fff"/>${cuts.join('')}</mask>`)

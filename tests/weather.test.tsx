@@ -165,3 +165,13 @@ test('limit edges shimmer while Claude works, and stay still at rest', async () 
   expect(busy).toContain('prefers-reduced-motion')
   expect(frame(null, list).svg).not.toContain('<animateTransform')
 })
+
+test('the pace dot has its own tooltip that says what it marks', async () => {
+  const now = Date.parse('2026-10-09T12:00:00Z')
+  const list = pills({ readings: [], limits: [{ kind: 'five_hour', percentUsed: 34, resetsAt: new Date(now + 4 * 3_600_000).toISOString() }] }, now)
+  const svg = frame(null, list).svg
+  const dot = /<circle class="pace-dot[^>]*>([\s\S]*?)<\/circle>/.exec(svg)?.[1] ?? ''
+  expect(dot).toContain('Pace mark · 5-hour limit')
+  expect(dot).toContain('20% of the window has passed')
+  expect(dot).toContain('14 points ahead of pace')
+})

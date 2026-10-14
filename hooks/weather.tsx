@@ -80,9 +80,23 @@ const paceLine = (gone: number, used: number) => {
   return `${gone}% of the window gone, ${d === 0 ? 'on pace' : `${Math.abs(d)} points ${d > 0 ? 'over' : 'under'} pace`}`
 }
 
+// What the pace dot means, in its own tooltip: where even spending would be by now, and how far off it you are.
+const paceTip = (name: string, gone: number, used: number) => {
+  const d = used - gone
+  return [
+    `Pace mark · ${name}`,
+    `Spending evenly, you would be here: ${gone}% of the window has passed.`,
+    d === 0
+      ? `You have used ${used}%, right on pace.`
+      : d > 0
+        ? `You have used ${used}%, ${d} points ahead of pace: at this rate the limit runs out early.`
+        : `You have used ${used}%, ${-d} points behind pace: there is room to spare.`,
+  ]
+}
+
 // `percent` is what the band shows: the share used, or with `left` the share left.
 // `used` is always the share used, for tones; `pace` sits on the same scale as `percent`.
-export type Pill = { tag: string; percent: number; used: number; pace?: number; tone: number; icon?: string; glyph?: string; tip: string[] }
+export type Pill = { tag: string; percent: number; used: number; pace?: number; paceTip?: string[]; tone: number; icon?: string; glyph?: string; tip: string[] }
 
 export const pills = (w: Weather, now: number, left = false): Pill[] => {
   const shown = (used: number) => (left ? Math.max(0, 100 - used) : used)
@@ -114,7 +128,7 @@ export const pills = (w: Weather, now: number, left = false): Pill[] => {
       tag: known.tag,
       percent: shown(percent),
       used: percent,
-      ...(gone === undefined ? {} : { pace: shown(gone) }),
+      ...(gone === undefined ? {} : { pace: shown(gone), paceTip: paceTip(known.name, gone, percent) }),
       tone: limitTone(percent),
       tip: [`${known.name} · ${percent}% used, ${Math.max(0, 100 - percent)}% left`, ...(gone === undefined ? [] : [paceLine(gone, percent)]), ...(reset ? [reset] : [])],
     })
