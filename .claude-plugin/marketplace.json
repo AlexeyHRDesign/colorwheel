@@ -2,6 +2,6 @@
   "name": "colorwheel",
   "owner": { "name": "Aleksei Druzhkov" },
   "plugins": [
-    { "name": "colorwheel", "source": "./", "version": "0.5.3", "description": "Themed replies, full-width diagrams, and your context and limits at a glance, in Claude Code Desktop." }
+    { "name": "colorwheel", "source": "./", "version": "0.5.4", "description": "Themed replies, full-width diagrams, and your context and limits at a glance, in Claude Code Desktop." }
   ]
 }

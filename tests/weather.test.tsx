@@ -121,7 +121,7 @@ test('each limit edge carries a pace tick at the share of its window already gon
   const desktop = await texts($, 'desktop')
   expect(desktop).toContain('20% of the window gone, 14 points over pace')
   expect(desktop).toContain('50% of the window gone, 14 points over pace')
-  expect(desktop).toMatch(/class=\\"pace\\"/)
+  expect(desktop).toMatch(/class=\\"pace-dot t0\\"/)
 })
 
 test('pills read the share left when inverted, and pace counts down with it', async () => {

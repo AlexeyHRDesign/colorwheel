@@ -33,12 +33,11 @@ const css =
   `.track{fill:none;stroke:${LIGHT.line};stroke-opacity:.28;stroke-width:1.5}` +
   `.ring{fill:none;stroke:currentColor;stroke-width:2}` +
   `.wash{fill:currentColor;fill-opacity:.1}` +
-  `.pace{fill:${LIGHT.fg};fill-opacity:.55}` +
-  `.edge-tag{font-size:${TAG_FONT}px;font-weight:600;fill:currentColor}.edge-dot{fill:currentColor}` +
+  `.edge-tag{font-size:${TAG_FONT}px;font-weight:600;fill:currentColor}.pace-dot{fill:currentColor;stroke:#efeeea;stroke-width:1.5}` +
   `.icon{fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}` +
   `.fg{fill:${LIGHT.fg}}.muted{fill:${LIGHT.muted}}.bold{font-weight:650}.tone{fill:currentColor}` +
   `.hit{fill:transparent}.metric:hover .hit{fill:${LIGHT.line};fill-opacity:.14}${tones(LIGHT.wheel)}` +
-  `@media (prefers-color-scheme:dark){.track{stroke:${DARK.line}}.pace{fill:${DARK.fg}}.fg{fill:${DARK.fg}}.muted{fill:${DARK.muted}}` +
+  `@media (prefers-color-scheme:dark){.track{stroke:${DARK.line}}.pace-dot{stroke:#30302e}.fg{fill:${DARK.fg}}.muted{fill:${DARK.muted}}` +
   `.wash{fill-opacity:.16}.metric:hover .hit{fill:${DARK.line}}${tones(DARK.wheel)}}`
 
 type Span = { text: string; cls: string; tone?: number }
@@ -70,9 +69,7 @@ const rect = (cls: string, inset: number, h: number) => {
 const FADE = 6
 // Percent of the width a label takes past the edge's end, roughly; a pace tick in it moves the label.
 const PACE_ROOM = 9
-const DOT_R = 3.2
-// Share of the width at each end kept clear of the corners, for the dot; about the corner radius.
-const END_PAD = 0.022
+const DOT_R = 3
 const share = (id: string, ratio: number, y: number, h: number, fade = FADE) => {
   const end = ratio * 100
   const start = Math.max(0, end - fade)
@@ -103,8 +100,8 @@ export const frame = (s: Summary | null, list: readonly Pill[], opts: FrameOptio
   }
 
   // The frame: top half the 5-hour limit, bottom half the 7-day, each drawn from the left as far as the share used.
-  // Each ends in a dot at its value, with its percent beside the dot in a gap cut out of the line;
-  // near the right corner the percent flips to sit before the dot.
+  // Each fades out softly at its value; its percent sits just past the fade in a gap cut out of the line,
+  // or, near the right corner, just before the fade begins. A dot of the same colour marks the pace.
   const edges: string[] = [rect('track', EDGE_INSET, h)]
   const tags: string[] = []
   const cuts: string[] = []
@@ -113,31 +110,29 @@ export const frame = (s: Summary | null, list: readonly Pill[], opts: FrameOptio
     if (!p) continue
     const left = Math.max(0, Math.min(100, p.percent)) / 100
     if (left > 0) {
-      defs.push(share(`e${tag}`, left, y, mid, 0))
+      defs.push(share(`e${tag}`, left, y, mid))
       edges.push(`<g class="t${ringOf(p)}" mask="url(#e${tag})">${rect('ring', EDGE_INSET, h)}</g>`)
     }
     const label = `${tag} ${p.percent}%${opts.left ? ' left' : ''}`
-    // The label also steps to the other side of the edge's end when the pace tick sits there.
+    // The label also steps to the other side of the edge's end when the pace dot sits there.
     const near = (from: number, to: number) => p.pace !== undefined && p.pace - p.percent >= from && p.pace - p.percent <= to
     const flip = left > 0.85 ? !near(-PACE_ROOM, 0) : near(0, PACE_ROOM)
-    // The dot and label stay on the straight run of the edge, clear of the rounded corners.
-    const at = `${(Math.min(1 - END_PAD, Math.max(END_PAD, left)) * 100).toFixed(2)}%`
     const ty = y === 0 ? EDGE_INSET : h - EDGE_INSET
     const width = label.length * TAG_CHAR + 2 * TAG_PAD
-    // The edge ends in a dot of its colour, exactly at the value; the label sits beside it, never on it.
-    const gap = DOT_R + 3
-    const from = flip ? `calc(${at} - ${(width + gap).toFixed(1)}px)` : `calc(${at} + ${gap}px)`
+    // The label sits clear of the edge's soft end: past it, or, flipped, before the fade begins.
+    const at = `${((flip ? Math.max(0, left * 100 - FADE) : left * 100)).toFixed(2)}%`
+    const from = flip ? `calc(${at} - ${(width + 4).toFixed(1)}px)` : `calc(${at} + 4px)`
     cuts.push(`<rect y="${ty - 6}" height="12" style="x:${from};width:${width.toFixed(1)}px" fill="#000"/>`)
     // The whole edge answers with the tooltip, not only its small label.
     const hitY = y === 0 ? 0 : h - 2 * EDGE_INSET
     tags.push(`<rect class="hit" x="0" y="${hitY}" width="100%" height="${2 * EDGE_INSET}"><title>${esc(p.tip.join('\n'))}</title></rect>`)
     tags.push(
-      `<g class="t${ringOf(p)}"><title>${esc(p.tip.join('\n'))}</title><circle class="edge-dot" cy="${ty}" r="${DOT_R}" style="cx:${at}"/><text class="edge-tag" x="${at}" dx="${flip ? -(gap + TAG_PAD) : gap + TAG_PAD}" y="${ty}" text-anchor="${flip ? 'end' : 'start'}">${esc(label)}</text></g>`,
+      `<g class="t${ringOf(p)}"><title>${esc(p.tip.join('\n'))}</title><text class="edge-tag" x="${at}" dx="${flip ? -(4 + TAG_PAD) : 4 + TAG_PAD}" y="${ty}" text-anchor="${flip ? 'end' : 'start'}">${esc(label)}</text></g>`,
     )
-    // Pace: where the edge would end if the budget were spent evenly across its window.
+    // Pace: a dot in the edge's colour where the edge would end if the budget were spent evenly.
     if (p.pace !== undefined) {
       const px = Math.max(0, Math.min(100, p.pace))
-      tags.push(`<rect class="pace" y="${ty - 4}" height="8" rx="1" style="x:calc(${px.toFixed(2)}% - 1px);width:2px"><title>${esc(p.tip.join('\n'))}</title></rect>`)
+      tags.push(`<circle class="pace-dot t${ringOf(p)}" cy="${ty}" r="${DOT_R}" style="cx:clamp(${R + SIDE_INSET}px, ${px.toFixed(2)}%, calc(100% - ${R + SIDE_INSET}px))"><title>${esc(p.tip.join('\n'))}</title></circle>`)
     }
   }
   defs.push(`<mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="${h}"><rect x="0" y="0" width="100%" height="${h}" fill="#fff"/>${cuts.join('')}</mask>`)
