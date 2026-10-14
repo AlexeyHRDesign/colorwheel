@@ -33,7 +33,7 @@ const css =
   `.track{fill:none;stroke:${LIGHT.line};stroke-opacity:.28;stroke-width:1.5}` +
   `.ring{fill:none;stroke:currentColor;stroke-width:2}` +
   `.wash{fill:currentColor;fill-opacity:.1}` +
-  `.edge-tag{font-size:${TAG_FONT}px;font-weight:600;fill:currentColor}.pace-dot{fill:currentColor;stroke:#efeeea;stroke-width:1.5}` +
+  `.edge-tag{font-size:${TAG_FONT}px;font-weight:600;fill:currentColor}.pace-dot{fill:currentColor;stroke:#efeeea;stroke-width:1.5}.shine{stroke:url(#shine)}@media (prefers-reduced-motion:reduce){.shine{display:none}}` +
   `.icon{fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}` +
   `.fg{fill:${LIGHT.fg}}.muted{fill:${LIGHT.muted}}.bold{font-weight:650}.tone{fill:currentColor}` +
   `.hit{fill:transparent}.metric:hover .hit{fill:${LIGHT.line};fill-opacity:.14}${tones(LIGHT.wheel)}` +
@@ -70,6 +70,7 @@ const FADE = 6
 // Percent of the width a label takes past the edge's end, roughly; a pace tick in it moves the label.
 const PACE_ROOM = 9
 const DOT_R = 3
+const SHINE_S = 2.4
 const share = (id: string, ratio: number, y: number, h: number, fade = FADE) => {
   const end = ratio * 100
   const start = Math.max(0, end - fade)
@@ -82,7 +83,8 @@ const share = (id: string, ratio: number, y: number, h: number, fade = FADE) => 
 
 // `left` labels the edges as the share left; `slot` keeps that many px free left of the metrics,
 // where the caller lays a control over the drawing. `slotRight` is that gap's right end, in px from the right.
-export type FrameOptions = { left?: boolean; slot?: number }
+// `working` runs a slow shimmer along the limit edges while Claude or its agents are at work.
+export type FrameOptions = { left?: boolean; slot?: number; working?: boolean }
 
 export const frame = (s: Summary | null, list: readonly Pill[], opts: FrameOptions = {}): { svg: string; alt: string; height: number; slotRight: number } => {
   const slot = opts.slot ?? 0
@@ -92,6 +94,15 @@ export const frame = (s: Summary | null, list: readonly Pill[], opts: FrameOptio
   const defs: string[] = []
   const body: string[] = []
   const hasProgress = !!s && (s.isActive || s.isFinished)
+  // A soft band of light that crosses the edge's own colour at a constant pace; it never changes
+  // the edge's length, which is data. Reduced motion hides it.
+  if (opts.working) {
+    defs.push(
+      `<linearGradient id="shine" x1="-0.35" y1="0" x2="0" y2="0">` +
+        `<stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="0.5" stop-color="#fff" stop-opacity="0.75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>` +
+        `<animateTransform attributeName="gradientTransform" type="translate" from="0 0" to="1.35 0" dur="${SHINE_S}s" repeatCount="indefinite"/></linearGradient>`,
+    )
+  }
 
   // Tasks: a wash inside the frame, growing from the left.
   if (hasProgress) {
@@ -112,6 +123,7 @@ export const frame = (s: Summary | null, list: readonly Pill[], opts: FrameOptio
     if (left > 0) {
       defs.push(share(`e${tag}`, left, y, mid))
       edges.push(`<g class="t${ringOf(p)}" mask="url(#e${tag})">${rect('ring', EDGE_INSET, h)}</g>`)
+      if (opts.working) edges.push(`<g mask="url(#e${tag})">${rect('ring shine', EDGE_INSET, h)}</g>`)
     }
     const label = `${tag} ${p.percent}%${opts.left ? ' left' : ''}`
     // The label also steps to the other side of the edge's end when the pace dot sits there.

@@ -223,7 +223,7 @@ export const register: Register = (on, options) => {
     const below = await next(e).catch(() => null)
     const columns = e.props.bodyColumns ?? e.viewport?.columns ?? 100
     if (desktop) {
-      const f = frame(hasProgress ? s : null, metrics, { left, slot: SLOT_PX })
+      const f = frame(hasProgress ? s : null, metrics, { left, slot: SLOT_PX, working: e.props.isWorking || s.isActive })
       // The Svg needs a width in px: the frame's markup stretches to whatever it gets, so
       // a width a little under the transcript column is safe.
       const width = Math.max(320, Math.round((e.viewport?.columns ?? 100) * PX_PER_COLUMN) - BAND_MARGIN)

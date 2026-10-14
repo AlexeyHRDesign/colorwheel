@@ -71,7 +71,9 @@ const at = (t: number) => {
   const eased = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2
   const usage: Usage = [30 + 28 * eased, 61 + 6 * eased, stepped[2]]
   const typed = t < TYPE_END ? PROMPT.slice(0, Math.round((t / TYPE_END) * PROMPT.length)) : t < SENT ? PROMPT : ''
-  return window(frame(band, pills(weather(usage), now)), {
+  // The edges shimmer while Claude works, from the moment the prompt is sent until all is done.
+  const working = t >= SENT && t < 8600
+  return window(frame(band, pills(weather(usage), now), { working }), {
     user: t >= SENT ? PROMPT : null,
     reply: [words(REPLY[0]!, LINE_1, t), words(REPLY[1]!, LINE_2, t)],
     lines: 2,
@@ -89,6 +91,8 @@ for (let i = 0; i * MS <= END; i++) {
   const [, w, h] = /width="(\d+)" height="(\d+)"/.exec(svg)!
   await page.setViewportSize({ width: Number(w), height: Number(h) })
   await page.setContent(`<!doctype html><meta charset="utf-8"><style>html,body{margin:0;overflow:hidden;background:#fff}svg{display:block}</style>${svg}`)
+  // Each frame is a fresh page, so the shimmer's clock is set to this frame's moment.
+  await page.evaluate(ms => { const root = document.querySelector('svg'); root?.pauseAnimations(); root?.setCurrentTime(ms / 1000) }, i * MS)
   const png = join(dir, `f${String(i).padStart(4, '0')}.png`)
   await page.screenshot({ path: png })
   shots.push(png)

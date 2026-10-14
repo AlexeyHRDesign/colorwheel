@@ -1,6 +1,7 @@
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
+import { frame } from '../hooks/frame'
 import { addReading, forecastFor, pills, short, trend } from '../hooks/weather'
 
 const usage = (tokens: number, window = 1_000_000) => ({ startedAt: 0, context: { tokens, window, percent: Math.round((tokens / window) * 100) }, rateLimits: [] })
@@ -154,4 +155,13 @@ test('an inverted band stays inverted in the next session', async ($, on) => {
   on('session.usage', () => ({ value: usage(0) }) as never)
   await $.session.start({ cwd: '.' } as never).catch(() => undefined)
   expect(await texts($, 'desktop')).toContain('7d 60% left')
+})
+
+test('limit edges shimmer while Claude works, and stay still at rest', async () => {
+  const list = pills({ readings: [], limits: [{ kind: 'five_hour', percentUsed: 40 }, { kind: 'seven_day', percentUsed: 20 }] }, 0)
+  const busy = frame(null, list, { working: true }).svg
+  expect(busy).toContain('class="ring shine"')
+  expect(busy).toContain('<animateTransform')
+  expect(busy).toContain('prefers-reduced-motion')
+  expect(frame(null, list).svg).not.toContain('<animateTransform')
 })
