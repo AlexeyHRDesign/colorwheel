@@ -21,7 +21,22 @@ export const taskCreated = (p: Progress, id: string, subject: string): Progress 
 
 export const taskCompleted = (p: Progress, id: string): Progress => ({ ...p, tasks: p.tasks.map(t => (t.id === id ? { ...t, isDone: true } : t)) })
 
+// The task list tools (TaskCreate, TaskUpdate) name the form shown while a task runs, and can drop a task.
+export const taskStarted = (p: Progress, id: string, activeForm?: string): Progress => ({
+  ...p,
+  tasks: p.tasks.map(t => (t.id === id ? { ...t, isStarted: true, ...(activeForm ? { activeForm } : {}) } : t)),
+})
+
+export const taskDeleted = (p: Progress, id: string): Progress => ({ ...p, tasks: p.tasks.filter(t => t.id !== id) })
+
 export const todosWritten = (p: Progress, todos: readonly Todo[]): Progress => ({ ...p, todos: todos.map(t => ({ content: t.content, status: t.status, ...(t.activeForm ? { activeForm: t.activeForm } : {}) })) })
+
+// The task to name: one in progress first, by its running form, then the first not done.
+const taskNow = (p: Progress) => {
+  const started = p.tasks.find(t => t.isStarted && !t.isDone)
+  if (started) return started.activeForm ?? started.subject
+  return p.tasks.find(t => !t.isDone)?.subject
+}
 
 export type Summary = {
   running: number
@@ -39,7 +54,7 @@ export const summarize = (p: Progress): Summary => {
   const tasksTotal = p.todos.length + p.tasks.length
   const tasksDone = p.todos.filter(t => t.status === 'completed').length + p.tasks.filter(t => t.isDone).length
   const doing = p.todos.find(t => t.status === 'in_progress')
-  const current = doing ? doing.activeForm ?? doing.content : p.tasks.find(t => !t.isDone)?.subject ?? running[0]?.label
+  const current = doing ? doing.activeForm ?? doing.content : taskNow(p) ?? running[0]?.label
   const isActive = running.length > 0 || tasksDone < tasksTotal
   return {
     running: running.length,

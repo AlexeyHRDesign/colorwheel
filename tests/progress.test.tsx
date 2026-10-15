@@ -94,3 +94,27 @@ test('/colorwheel progress plays the demo even with words after it', async ($, o
   const reply = await $.command.run({ command: 'colorwheel', args: 'progress and a note' } as never)
   expect(JSON.stringify(reply)).toContain('Progress demo')
 })
+
+test('tasks made with TaskCreate and moved with TaskUpdate show in the band', async ($, on) => {
+  stand(on)
+  let next = 1
+  on('tool.call', ($, e) => {
+    const input = e as unknown as { tool: string; subject?: string; taskId?: string }
+    if (input.tool === 'TaskCreate') return { result: { task: { id: String(next++), subject: input.subject } } } as never
+    return { result: { success: true, taskId: input.taskId, updatedFields: ['status'] } } as never
+  })
+  for (const subject of ['Find every boolean', 'Pass open meshes through', 'Sidebar warning']) {
+    await $.tool.call({ tool: 'TaskCreate', subject, description: subject, activeForm: `Doing ${subject}` } as never)
+  }
+  await $.tool.call({ tool: 'TaskUpdate', taskId: '1', status: 'completed' } as never)
+  await $.tool.call({ tool: 'TaskUpdate', taskId: '2', status: 'in_progress', activeForm: 'Passing open meshes through' } as never)
+  const ui = await $.ui.mount(band('desktop') as never)
+  const all = JSON.stringify(await ui.findAll({ type: 'Svg' }))
+  await ui.unmount()
+  expect(all).toContain('1/3')
+  expect(all).toContain('Passing open meshes through')
+  await $.tool.call({ tool: 'TaskUpdate', taskId: '3', status: 'deleted' } as never)
+  const after = await $.ui.mount(band('desktop') as never)
+  expect(JSON.stringify(await after.findAll({ type: 'Svg' }))).toContain('1/2')
+  await after.unmount()
+})
