@@ -118,3 +118,20 @@ test('tasks made with TaskCreate and moved with TaskUpdate show in the band', as
   expect(JSON.stringify(await after.findAll({ type: 'Svg' }))).toContain('1/2')
   await after.unmount()
 })
+
+test('subagents count as running from their first tool call until they hand back, with no SubagentStart', async ($, on) => {
+  stand(on)
+  on('tool.call', () => ({ result: 'ok' }) as never)
+  await $.tool.call({ tool: 'Agent', subagent_type: 'Explore', description: 'Map the layout code', prompt: 'x' } as never).catch(() => undefined)
+  await $.tool.call({ tool: 'Read', file_path: 'a', agentId: 'sub-1' } as never).catch(() => undefined)
+  const look = async () => {
+    const ui = await $.ui.mount(band('desktop') as never)
+    const all = JSON.stringify(await ui.findAll({ type: 'Svg' }))
+    await ui.unmount()
+    return all
+  }
+  expect(await look()).toContain('1 running')
+  expect(await look()).toContain('Map the layout code')
+  await $.tool.call({ tool: 'SubagentHandback', agentId: 'sub-1' } as never).catch(() => undefined)
+  expect(await look()).toContain('All done')
+})

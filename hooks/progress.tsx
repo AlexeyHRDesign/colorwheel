@@ -14,6 +14,14 @@ export const agentStarted = (p: Progress, id: string, type: string): Progress =>
   return { ...p, queued: p.queued.filter((_, i) => i !== at), agents: [...p.agents, { id, type, label, isDone: false }] }
 }
 
+// The desktop app raises no SubagentStart: a subagent shows itself by its first tool call, under its own
+// agentId. It takes the oldest queued Agent call's label, as SubagentStart would by type.
+export const agentSeen = (p: Progress, id: string): Progress => {
+  if (p.agents.some(a => a.id === id)) return p
+  const q = p.queued[0]
+  return { ...p, queued: p.queued.slice(1), agents: [...p.agents, { id, type: q?.type ?? 'subagent', label: q?.label ?? 'subagent', isDone: false }] }
+}
+
 export const agentStopped = (p: Progress, id: string): Progress => ({ ...p, agents: p.agents.map(a => (a.id === id ? { ...a, isDone: true } : a)) })
 
 export const taskCreated = (p: Progress, id: string, subject: string): Progress =>

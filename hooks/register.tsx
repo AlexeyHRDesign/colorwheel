@@ -9,7 +9,7 @@ import type { Diagram } from './diagram'
 import { PX_PER_COLUMN, crop, diagram, fit } from './diagram'
 import { ALERTS, alertColor } from './palette'
 import { frame } from './frame'
-import { EMPTY, agentQueued, agentStarted, agentStopped, drawBand, summarize, taskCompleted, taskCreated, taskDeleted, taskStarted, todosWritten } from './progress'
+import { EMPTY, agentQueued, agentSeen, agentStarted, agentStopped, drawBand, summarize, taskCompleted, taskCreated, taskDeleted, taskStarted, todosWritten } from './progress'
 import { INVERT_GLYPH, INVERT_KEY, QUIET, addReading, drawWeather, pills } from './weather'
 
 const HINT = [
@@ -183,6 +183,11 @@ export const register: Register = (on, options) => {
     const input = e as unknown as { tool: string; description?: string; subagent_type?: string; todos?: Todo[] }
     if ((input.tool === 'Agent' || input.tool === 'Task') && !e.agentId) {
       await track($, p => agentQueued(p, input.subagent_type ?? 'general-purpose', input.description ?? input.subagent_type ?? 'subagent'))
+    }
+    // A subagent's own tool calls carry its agentId; its last is SubagentHandback.
+    if (e.agentId) {
+      const id = e.agentId
+      await track($, p => (input.tool === 'SubagentHandback' ? agentStopped(agentSeen(p, id), id) : agentSeen(p, id)))
     }
     if (input.tool === 'TodoWrite' && Array.isArray(input.todos) && !e.agentId) await track($, p => todosWritten(p, input.todos!))
     if ((input.tool === 'TaskCreate' || input.tool === 'TaskUpdate') && !e.agentId) {
